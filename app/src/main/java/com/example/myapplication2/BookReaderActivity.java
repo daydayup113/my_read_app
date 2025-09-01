@@ -9,6 +9,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.GridLayout;
 import android.widget.ImageButton;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -46,6 +47,7 @@ public class BookReaderActivity extends AppCompatActivity {
 
     // 添加一个变量来引用ScrollView
     private View scrollView;
+    private View clickDetectionLayer;
 
     // 添加翻页按钮引用
     private Button previousButton;
@@ -72,6 +74,7 @@ public class BookReaderActivity extends AppCompatActivity {
         titleTextView = findViewById(R.id.titleTextView);
         contentTextView = findViewById(R.id.contentTextView);
         scrollView = findViewById(R.id.scrollView); // 添加对ScrollView的引用
+        clickDetectionLayer = findViewById(R.id.clickDetectionLayer);
 
         // 初始化翻页按钮
         previousButton = findViewById(R.id.previousButton);
@@ -85,6 +88,33 @@ public class BookReaderActivity extends AppCompatActivity {
 
         // 默认显示菜单层
         showMenuLayer();
+
+        // 为区域检测层添加点击监听器
+        clickDetectionLayer.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // 这里处理点击事件
+            }
+        });
+
+        // 为16个区域添加点击监听器
+        GridLayout gridLayout = findViewById(R.id.gridLayout);
+        for (int i = 0; i < gridLayout.getChildCount(); i++) {
+            View cell = gridLayout.getChildAt(i);
+            final int index = i;
+            
+            // 获取单元格标签
+            String tag = (String) cell.getTag();
+            
+            // 设置点击监听器
+            cell.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    boolean isCenter = "center".equals(tag);
+                    handleCellClick(index, isCenter);
+                }
+            });
+        }
 
         // 设置按钮点击事件
         previousButton.setOnClickListener(new View.OnClickListener() {
@@ -120,7 +150,7 @@ public class BookReaderActivity extends AppCompatActivity {
             }
         });
 
-        // 设置菜单背景点击事件，用于隐藏菜单层
+        // 设置菜单背景点击事件，用于隐藏菜单
         menuBackground.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -129,33 +159,15 @@ public class BookReaderActivity extends AppCompatActivity {
             }
         });
 
-        // 设置整个菜单层的点击事件，用于隐藏菜单
-        menuLayer.setOnClickListener(new View.OnClickListener() {
+        // 设置菜单中间区域点击事件，用于隐藏菜单
+        View menuMiddleArea = findViewById(R.id.menuMiddleArea);
+        menuMiddleArea.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.d(TAG, "onClick: 菜单层任意位置被点击，隐藏菜单层");
+                Log.d(TAG, "onClick: 菜单中间区域被点击，隐藏菜单层");
                 hideMenuLayer();
             }
         });
-
-        // 移除ScrollView的点击监听器和触摸监听器，避免事件冲突
-        // 设置ScrollView的点击监听器，用于显示/隐藏菜单层
-//        scrollView.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                Log.d(TAG, "onClick: ScrollView clicked, toggling menu layer");
-//                toggleMenuLayer();
-//            }
-//        });
-//        
-//        // 为ScrollView添加触摸监听器，用于调试和确保事件正确传递
-//        scrollView.setOnTouchListener(new View.OnTouchListener() {
-//            @Override
-//            public boolean onTouch(View v, MotionEvent event) {
-//                // 不消费ScrollView的触摸事件，让contentTextView处理
-//                return false;
-//            }
-//        });
 
         // 设置触摸监听器实现上下滑动翻页和点击显示菜单
         contentTextView.setOnTouchListener(new View.OnTouchListener() {
@@ -195,8 +207,19 @@ public class BookReaderActivity extends AppCompatActivity {
                                 Math.abs(deltaY) < MAX_CLICK_DISTANCE;
 
                         if (isClick) {
-                            Log.d(TAG, "onTouch: 点击事件检测到，显示/隐藏菜单层");
-                            toggleMenuLayer();
+                            Log.d(TAG, "onTouch: 点击事件检测到");
+                            
+                            // 如果菜单层可见，则隐藏菜单层
+                            if (menuLayer.getVisibility() == View.VISIBLE) {
+                                Log.d(TAG, "onTouch: 菜单层可见，隐藏菜单层");
+                                hideMenuLayer();
+                            } 
+                            // 否则显示菜单层
+                            else {
+                                Log.d(TAG, "onTouch: 菜单层不可见，显示菜单层");
+                                showMenuLayer();
+                            }
+                            
                             // 释放父视图对触摸事件的控制
                             scrollView.getParent().requestDisallowInterceptTouchEvent(false);
                             return true;
@@ -525,29 +548,45 @@ public class BookReaderActivity extends AppCompatActivity {
         builder.show();
     }
 
-    // 显示/隐藏菜单层
-    private void toggleMenuLayer() {
-        Log.d(TAG, "菜单层: 当前可见性: " + (menuLayer.getVisibility() == View.VISIBLE ? "可见" : "隐藏"));
-        Log.d(TAG, "toggleMenuLayer: 被调用");
-        if (menuLayer.getVisibility() == View.VISIBLE) {
-            Log.d(TAG, "toggleMenuLayer: 隐藏菜单层");
-            hideMenuLayer();
-        } else {
-            Log.d(TAG, "toggleMenuLayer: 显示菜单层");
-            showMenuLayer();
-        }
-        Log.d(TAG, "toggleMenuLayer: 完成。新可见性: " + (menuLayer.getVisibility() == View.VISIBLE ? "可见" : "隐藏"));
-    }
-
     // 显示菜单层
     private void showMenuLayer() {
         Log.d(TAG, "显示菜单层");
         menuLayer.setVisibility(View.VISIBLE);
+        // 隐藏区域检测层，避免干扰
+        clickDetectionLayer.setVisibility(View.GONE);
     }
 
     // 隐藏菜单层
     private void hideMenuLayer() {
         Log.d(TAG, "隐藏菜单层");
         menuLayer.setVisibility(View.GONE);
+        // 显示区域检测层
+        clickDetectionLayer.setVisibility(View.VISIBLE);
+    }
+
+    // 处理单元格点击事件
+    private void handleCellClick(int index, boolean isCenter) {
+        Log.d(TAG, "handleCellClick: 点击了区域 " + index + (isCenter ? " (中间区域)" : " (边缘区域)"));
+        
+        // 只在中间区域点击时显示菜单层
+        if (isCenter) {
+            Log.d(TAG, "handleCellClick: 在中间区域点击，显示菜单层");
+            if (menuLayer.getVisibility() != View.VISIBLE) {
+                showMenuLayer();
+            } else {
+                hideMenuLayer();
+            }
+        } else {
+            Log.d(TAG, "handleCellClick: 在边缘区域点击，不执行操作");
+        }
+    }
+
+    // 显示/隐藏菜单层
+    private void toggleMenuLayer() {
+        if (menuLayer.getVisibility() == View.VISIBLE) {
+            hideMenuLayer();
+        } else {
+            showMenuLayer();
+        }
     }
 }

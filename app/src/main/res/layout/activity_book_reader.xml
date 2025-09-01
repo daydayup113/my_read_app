@@ -73,6 +73,48 @@
 
     </LinearLayout>
 
+    <!-- 16个区域的覆盖层，用于检测点击区域 -->
+    <FrameLayout
+        android:id="@+id/clickDetectionLayer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="80dp"
+        android:visibility="visible">
+
+        <!-- 4行4列的区域 -->
+        <GridLayout
+            android:id="@+id/gridLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:columnCount="4"
+            android:rowCount="4">
+
+            <!-- 第一行 -->
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
+
+            <!-- 第二行 -->
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#40ADD8E6" android:tag="center" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#40ADD8E6" android:tag="center" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
+
+            <!-- 第三行 -->
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#40ADD8E6" android:tag="center" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#40ADD8E6" android:tag="center" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
+
+            <!-- 第四行 -->
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
+        </GridLayout>
+    </FrameLayout>
+
     <!-- 菜单层，默认隐藏 -->
     <FrameLayout
         android:id="@+id/menuLayer"
@@ -93,7 +135,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:padding="16dp"
-            android:background="#404B1CB8">
+            android:background="#FF333333">
 
             <ImageButton
                 android:id="@+id/backButton"
@@ -116,10 +158,11 @@
         
         <!-- 中间区域，用于点击隐藏菜单 -->
         <View
+            android:id="@+id/menuMiddleArea"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginTop="60dp"
-            android:layout_marginBottom="60dp" />
+            android:layout_marginTop="80dp"
+            android:layout_marginBottom="80dp" />
 
         <!-- 底部菜单栏 -->
         <LinearLayout
@@ -129,7 +172,47 @@
             android:gravity="center"
             android:orientation="horizontal"
             android:padding="16dp"
-            android:background="#404B1CB8">
+            android:background="#FF333333">
+
+            <ImageButton
+                android:id="@+id/fontSettingsButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="字体设置"
+                android:src="@android:drawable/ic_menu_preferences" />
+                
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                android:text="字体"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp" />
+
+            <View
+                android:layout_width="16dp"
+                android:layout_height="16dp" />
+
+            <ImageButton
+                android:id="@+id/nightModeButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="夜间模式"
+                android:src="@android:drawable/ic_menu_compass" />
+                
+            <TextView
+                android:id="@+id/nightModeText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                android:text="夜间模式"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp" />
+
 
             <ImageButton
                 android:id="@+id/tocButton"
@@ -137,7 +220,7 @@
                 android:layout_height="wrap_content"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:contentDescription="目录"
-                android:src="?attr/actionModeSelectAllDrawable" />
+                android:src="@android:drawable/ic_menu_info_details" />
                 
             <TextView
                 android:layout_width="wrap_content"
