@@ -1,5 +1,6 @@
 package com.example.myapplication2;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
@@ -71,6 +72,18 @@ public class BookReaderActivity extends AppCompatActivity {
             getSupportActionBar().show();
         }
 
+        // 初始化视图引用
+        initializeViews();
+        
+        // 初始化点击事件监听器
+        initializeClickListeners();
+        
+        // 初始化书籍加载
+        initializeBookLoading();
+    }
+    
+    // 初始化视图引用
+    private void initializeViews() {
         titleTextView = findViewById(R.id.titleTextView);
         contentTextView = findViewById(R.id.contentTextView);
         scrollView = findViewById(R.id.scrollView); // 添加对ScrollView的引用
@@ -85,9 +98,62 @@ public class BookReaderActivity extends AppCompatActivity {
         backButton = findViewById(R.id.backButton);
         tocButton = findViewById(R.id.tocButton);
         menuBackground = findViewById(R.id.menuBackground);
-
+    }
+    
+    // 初始化点击事件监听器
+    private void initializeClickListeners() {
         // 默认显示菜单层
         showMenuLayer();
+
+        // 使用post方法将耗时的初始化操作推迟到下一帧执行
+        // 这样可以避免阻塞主线程，提高界面启动速度
+        clickDetectionLayer.post(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "开始初始化16个点击区域监听器");
+                
+                // 获取GridLayout布局，用于管理16个点击区域
+                GridLayout gridLayout = findViewById(R.id.gridLayout);
+                if (gridLayout == null) {
+                    Log.e(TAG, "GridLayout未找到，初始化点击区域失败");
+                    return;
+                }
+                
+                // 获取子视图数量并记录日志
+                int childCount = gridLayout.getChildCount();
+                Log.d(TAG, "找到" + childCount + "个子视图用于点击区域");
+                
+                // 遍历所有子视图，为每个单元格添加点击监听器
+                for (int i = 0; i < childCount; i++) {
+                    // 获取当前单元格视图
+                    View cell = gridLayout.getChildAt(i);
+                    if (cell == null) {
+                        Log.w(TAG, "点击区域" + i + "为空，跳过初始化");
+                        continue;
+                    }
+                    
+                    // 保存当前索引，供点击事件使用
+                    final int index = i;
+                    
+                    // 获取单元格标签（用于判断是否为中心区域）
+                    String tag = (String) cell.getTag();
+                    Log.d(TAG, "点击区域" + i + "的标签: " + tag);
+                    
+                    // 为单元格设置点击监听器
+                    cell.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            // 判断是否为中心区域
+                            boolean isCenter = "center".equals(tag);
+                            Log.d(TAG, "点击事件: 区域=" + index + ", 是否为中心区域=" + isCenter);
+                            // 调用实际的点击处理方法
+                            handleCellClick(index, isCenter);
+                        }
+                    });
+                }
+                Log.d(TAG, "点击区域监听器初始化完成");
+            }
+        });
 
         // 为区域检测层添加点击监听器
         clickDetectionLayer.setOnClickListener(new View.OnClickListener() {
@@ -96,25 +162,6 @@ public class BookReaderActivity extends AppCompatActivity {
                 // 这里处理点击事件
             }
         });
-
-        // 为16个区域添加点击监听器
-        GridLayout gridLayout = findViewById(R.id.gridLayout);
-        for (int i = 0; i < gridLayout.getChildCount(); i++) {
-            View cell = gridLayout.getChildAt(i);
-            final int index = i;
-            
-            // 获取单元格标签
-            String tag = (String) cell.getTag();
-            
-            // 设置点击监听器
-            cell.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    boolean isCenter = "center".equals(tag);
-                    handleCellClick(index, isCenter);
-                }
-            });
-        }
 
         // 设置按钮点击事件
         previousButton.setOnClickListener(new View.OnClickListener() {
@@ -257,9 +304,15 @@ public class BookReaderActivity extends AppCompatActivity {
             }
         });
 
+    }
+    
+    // 初始化书籍加载
+    private void initializeBookLoading() {
+        // 从Intent获取书籍路径
+        Intent intent = getIntent();
+        String bookPath = intent.getStringExtra("book_path");
+        Log.d(TAG, "onCreate: 接收到书籍路径: " + bookPath);
 
-        bookPath = getIntent().getStringExtra("book_path");
-        Log.d(TAG, "onCreate: Book path from intent: " + bookPath);
         if (bookPath != null) {
             // 显示加载提示
             contentTextView.setText("正在加载书籍...");

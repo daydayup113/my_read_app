@@ -97,14 +97,14 @@
 
             <!-- 第二行 -->
             <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
-            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#40ADD8E6" android:tag="center" />
-            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#40ADD8E6" android:tag="center" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" android:tag="center" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" android:tag="center" />
             <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
 
             <!-- 第三行 -->
             <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
-            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#40ADD8E6" android:tag="center" />
-            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#40ADD8E6" android:tag="center" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" android:tag="center" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" android:tag="center" />
             <View android:layout_width="0dp" android:layout_height="0dp" android:layout_columnWeight="1" android:layout_rowWeight="1" android:background="#20FFFFFF" />
 
             <!-- 第四行 -->
