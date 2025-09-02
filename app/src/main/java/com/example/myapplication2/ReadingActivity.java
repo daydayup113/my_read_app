@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ScrollView;
@@ -116,6 +117,10 @@ public class ReadingActivity extends AppCompatActivity {
         previousPageButton = findViewById(R.id.previousPageButton);
         nextPageButton = findViewById(R.id.nextPageButton);
         
+        // 初始化菜单层为隐藏状态
+        menuLayer.setVisibility(View.GONE);
+        isMenuVisible = false;
+        
         // 设置滚动监听，用于检测是否需要加载更多内容
         // 注意：setOnScrollChangeListener需要API 23及以上
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
@@ -134,11 +139,58 @@ public class ReadingActivity extends AppCompatActivity {
             toggleMenu();
         });
 
-        // 点击中间区域显示菜单
+        // 点击中间区域显示菜单 - 使用触摸事件检测精确点击
         View centerClickArea = findViewById(R.id.centerClickArea);
-        centerClickArea.setOnClickListener(v -> {
-            Log.d(TAG, "centerClickArea clicked: showing menu");
-            showMenu();
+        centerClickArea.setOnTouchListener(new View.OnTouchListener() {
+            private static final int CLICK_THRESHOLD = 20; // 点击和滑动的阈值
+            private float startX, startY;
+            private long startTime;
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startX = event.getX();
+                        startY = event.getY();
+                        startTime = System.currentTimeMillis();
+                        return true; // 消费DOWN事件
+                        
+                    case MotionEvent.ACTION_UP:
+                        long endTime = System.currentTimeMillis();
+                        float endX = event.getX();
+                        float endY = event.getY();
+                        
+                        // 计算移动距离
+                        float deltaX = Math.abs(endX - startX);
+                        float deltaY = Math.abs(endY - startY);
+                        
+                        // 判断是否为点击事件
+                        // 条件：移动距离小于阈值 且 时间较短
+                        if (deltaX < CLICK_THRESHOLD && deltaY < CLICK_THRESHOLD && 
+                            (endTime - startTime) < 200) {
+                            Log.d(TAG, "centerClickArea touched: showing menu");
+                            showMenu();
+                            return true; // 消费点击事件
+                        }
+                        return true; // 消费UP事件
+                        
+                    case MotionEvent.ACTION_MOVE:
+                        // 计算移动距离
+                        float moveX = Math.abs(event.getX() - startX);
+                        float moveY = Math.abs(event.getY() - startY);
+                        
+                        // 如果移动距离超过阈值，认为是滑动操作，不显示菜单
+                        if (moveX > CLICK_THRESHOLD || moveY > CLICK_THRESHOLD) {
+                            // 将事件传递给ScrollView
+                            contentScrollView.dispatchTouchEvent(MotionEvent.obtain(event));
+                            return false; // 不消费事件，让ScrollView处理滑动
+                        }
+                        return true; // 消费MOVE事件
+                        
+                    default:
+                        return false;
+                }
+            }
         });
 
         // 点击菜单层中间区域隐藏菜单
