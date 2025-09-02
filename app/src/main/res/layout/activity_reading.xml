@@ -101,6 +101,15 @@
                 android:contentDescription="目录"
                 android:background="?android:attr/selectableItemBackgroundBorderless" />
 
+            <ImageButton
+                android:id="@+id/settingsButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@android:drawable/ic_menu_preferences"
+                android:contentDescription="设置"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:layout_marginStart="16dp" />
+
         </LinearLayout>
 
     </LinearLayout>

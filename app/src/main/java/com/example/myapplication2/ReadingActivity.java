@@ -19,6 +19,7 @@ import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.InputStream;
@@ -41,7 +42,8 @@ public class ReadingActivity extends AppCompatActivity {
     private ImageButton backButton;
     private Button previousPageButton;
     private Button nextPageButton;
-    private ImageButton tocButton; // 添加目录按钮变量
+    private ImageButton tocButton;
+    private ImageButton settingsButton; // 添加设置按钮变量
     private boolean isMenuVisible = false;
     private Book epubBook;
     private String bookTitle;
@@ -120,8 +122,8 @@ public class ReadingActivity extends AppCompatActivity {
         backButton = findViewById(R.id.backButton);
         previousPageButton = findViewById(R.id.previousPageButton);
         nextPageButton = findViewById(R.id.nextPageButton);
-        tocButton = findViewById(R.id.tocButton); // 初始化目录按钮
-        tocButton = findViewById(R.id.tocButton); // 初始化目录按钮
+        tocButton = findViewById(R.id.tocButton);
+        settingsButton = findViewById(R.id.settingsButton); // 初始化设置按钮
         
         // 初始化菜单层为隐藏状态
         menuLayer.setVisibility(View.GONE);
@@ -214,9 +216,16 @@ public class ReadingActivity extends AppCompatActivity {
         });
 
         // 目录按钮
-        tocButton.setOnClickListener(v -> { // 使用tocButton而不是findViewById
+        tocButton.setOnClickListener(v -> {
             Log.d(TAG, "tocButton clicked");
             openTableOfContents();
+        });
+        
+        // 设置按钮
+        settingsButton.setOnClickListener(v -> {
+            Log.d(TAG, "settingsButton clicked");
+            // 显示简单的设置选项（可以扩展为更复杂的设置功能）
+            showSettingsOptions();
         });
         
         // 翻页按钮
@@ -384,13 +393,11 @@ public class ReadingActivity extends AppCompatActivity {
     }
 
     private void openTableOfContents() {
-        Log.d(TAG, "openTableOfContents: epubBook=" + (epubBook != null));
-        if (epubBook != null) {
-            TableOfContents toc = epubBook.getTableOfContents();
-            List<TOCReference> tocReferences = toc.getTocReferences();
-            
-            if (tocReferences != null && !tocReferences.isEmpty()) {
-                // 启动目录界面并传递书籍信息
+        Log.d(TAG, "openTableOfContents: bookTitle=" + bookTitle + ", spineReferences size=" + (spineReferences != null ? spineReferences.size() : "null"));
+        if (epubBook != null && bookUri != null) {
+            TableOfContents tableOfContents = epubBook.getTableOfContents();
+            if (tableOfContents != null && !tableOfContents.getTocReferences().isEmpty()) {
+                Log.d(TAG, "openTableOfContents: Opening table of contents");
                 Intent intent = new Intent(this, TableOfContentsActivity.class);
                 intent.putExtra("book_uri", bookUri.toString());
                 intent.putExtra("book_title", bookTitle);
@@ -402,6 +409,34 @@ public class ReadingActivity extends AppCompatActivity {
         } else {
             Toast.makeText(this, "书籍未加载完成", Toast.LENGTH_SHORT).show();
         }
+    }
+    
+    // 显示设置选项
+    private void showSettingsOptions() {
+        Log.d(TAG, "showSettingsOptions: Showing settings options");
+        // 创建字体大小调整对话框
+        showFontSizeDialog();
+        // 隐藏菜单层
+        hideMenu();
+    }
+    
+    // 显示字体大小调整对话框
+    private void showFontSizeDialog() {
+        // 定义字体大小选项
+        String[] fontSizeOptions = {"小", "中", "大", "超大"};
+        float[] fontSizes = {14f, 18f, 22f, 26f};
+        
+        // 创建对话框
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("选择字体大小");
+        builder.setItems(fontSizeOptions, (dialog, which) -> {
+            // 根据选择调整字体大小
+            float selectedSize = fontSizes[which];
+            contentTextView.setTextSize(selectedSize);
+            Log.d(TAG, "Font size changed to: " + selectedSize);
+        });
+        builder.setNegativeButton("取消", null);
+        builder.create().show();
     }
     
     // 添加翻页方法
