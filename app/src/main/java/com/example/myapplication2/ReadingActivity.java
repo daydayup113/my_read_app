@@ -203,7 +203,8 @@ public class ReadingActivity extends AppCompatActivity {
         // 返回按钮
         findViewById(R.id.backButton).setOnClickListener(v -> {
             Log.d(TAG, "backButton clicked");
-            onBackPressed();
+            // 直接返回到书籍列表页面
+            finish();
         });
 
         // 目录按钮
