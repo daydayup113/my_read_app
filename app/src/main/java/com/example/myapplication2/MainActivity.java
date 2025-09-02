@@ -1,8 +1,8 @@
 package com.example.myapplication2;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.content.ContentResolver;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -16,6 +16,7 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -30,7 +31,6 @@ import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 1;
@@ -73,9 +73,24 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupRecyclerView() {
         epubBooks = new ArrayList<>();
-        booksAdapter = new BooksAdapter(epubBooks, this::openBook);
+        BooksAdapter.OnBookClickListener clickListener = new BooksAdapter.OnBookClickListener() {
+            @Override
+            public void onBookClick(EPUBBook book) {
+                openBook(book);
+            }
+        };
+        
+        booksAdapter = new BooksAdapter(epubBooks, clickListener);
         booksRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         booksRecyclerView.setAdapter(booksAdapter);
+        
+        // 注册长按事件监听器
+        booksAdapter.setOnBookLongClickListener(new BooksAdapter.OnBookLongClickListener() {
+            @Override
+            public void onBookLongClick(EPUBBook book, int position) {
+                showBookOptions(book, position);
+            }
+        });
     }
 
     private void setupClickListeners() {
@@ -131,6 +146,13 @@ public class MainActivity extends AppCompatActivity {
     private void addBookToList(Uri uri) {
         try {
             String fileName = getFileName(uri);
+            
+            // 检查书籍是否已经存在于列表中
+            if (isBookAlreadyAdded(fileName)) {
+                Toast.makeText(this, "书籍已存在: " + fileName, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
             // 将书籍文件复制到应用私有目录
             String savedFileName = copyBookToPrivateStorage(uri, fileName);
             
@@ -146,6 +168,16 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             Toast.makeText(this, "添加书籍失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+    
+    // 检查书籍是否已经添加
+    private boolean isBookAlreadyAdded(String fileName) {
+        for (EPUBBook book : epubBooks) {
+            if (book.getTitle().equals(fileName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String getFileName(Uri uri) {
@@ -214,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
     // 检查本地文件是否有效
     private boolean isLocalFileValid(Uri uri) {
         try {
-            File file = new File(Objects.requireNonNull(uri.getPath()));
+            File file = new File(uri.getPath());
             return file.exists() && file.isFile() && file.canRead();
         } catch (Exception e) {
             return false;
@@ -222,14 +254,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // 移除无效的书籍
-    @SuppressLint("NotifyDataSetChanged")
     private void removeInvalidBook(EPUBBook book) {
         Iterator<EPUBBook> iterator = epubBooks.iterator();
         while (iterator.hasNext()) {
             EPUBBook currentBook = iterator.next();
             if (currentBook.getUri().equals(book.getUri())) {
                 // 删除本地文件
-                File bookFile = new File(Objects.requireNonNull(currentBook.getUri().getPath()));
+                File bookFile = new File(currentBook.getUri().getPath());
                 if (bookFile.exists()) {
                     bookFile.delete();
                 }
@@ -265,7 +296,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // 从SharedPreferences加载书籍列表
-    @SuppressLint("NotifyDataSetChanged")
     private void loadSavedBooks() {
         String bookListString = sharedPreferences.getString(BOOK_LIST_KEY, "");
         if (!bookListString.isEmpty()) {
@@ -301,5 +331,54 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
+    }
+    
+    // 显示书籍选项对话框
+    private void showBookOptions(EPUBBook book, int position) {
+        // 创建自定义列表项
+        CharSequence[] options = {"删除"};
+        
+        // 创建自定义样式的对话框
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomDialogTheme);
+        builder.setTitle("书籍选项")
+                .setItems(options, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (which == 0) { // 删除选项
+                            deleteBook(book, position);
+                        }
+                    }
+                })
+                .setNegativeButton("取消", (dialog, which) -> dialog.dismiss());
+        
+        // 创建并显示对话框
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+    
+    // 删除书籍
+    private void deleteBook(EPUBBook book, int position) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("确认删除")
+                .setMessage("确定要删除书籍 \"" + book.getTitle() + "\" 吗？")
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // 删除本地文件
+                        File bookFile = new File(book.getUri().getPath());
+                        if (bookFile.exists()) {
+                            bookFile.delete();
+                        }
+                        
+                        // 从列表中移除
+                        epubBooks.remove(position);
+                        booksAdapter.notifyItemRemoved(position);
+                        saveBooks(); // 重新保存书籍列表
+                        
+                        Toast.makeText(MainActivity.this, "书籍已删除", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 }
