@@ -127,10 +127,18 @@ public class ReadingActivity extends AppCompatActivity {
 
     private void setupClickListeners() {
         Log.d(TAG, "setupClickListeners: Setting up click listeners");
+        
         // 点击内容区域切换菜单显示/隐藏
         contentScrollView.setOnClickListener(v -> {
             Log.d(TAG, "contentScrollView clicked: toggling menu");
             toggleMenu();
+        });
+
+        // 点击中间区域显示菜单
+        View centerClickArea = findViewById(R.id.centerClickArea);
+        centerClickArea.setOnClickListener(v -> {
+            Log.d(TAG, "centerClickArea clicked: showing menu");
+            showMenu();
         });
 
         // 点击菜单层中间区域隐藏菜单
@@ -296,7 +304,11 @@ public class ReadingActivity extends AppCompatActivity {
         Log.d(TAG, "showMenu: Showing menu");
         menuLayer.setVisibility(View.VISIBLE);
         isMenuVisible = true;
-        // 隐藏翻页按钮
+        hidePageButtons();
+    }
+    
+    private void hidePageButtons() {
+        Log.d(TAG, "hidePageButtons: Hiding page navigation buttons");
         previousPageButton.setVisibility(View.GONE);
         nextPageButton.setVisibility(View.GONE);
     }

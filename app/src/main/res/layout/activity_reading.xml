@@ -21,6 +21,14 @@
             android:text="书籍内容将在这里显示..." />
     </ScrollView>
 
+    <!-- 中间点击区域，用于显示菜单 -->
+    <View
+        android:id="@+id/centerClickArea"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_gravity="center"
+        android:background="@android:color/transparent" />
+
     <!-- 上一页按钮 -->
     <Button
         android:id="@+id/previousPageButton"
@@ -47,7 +55,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-
         android:background="#80ADD8E6">
 
         <!-- 顶部菜单 -->
