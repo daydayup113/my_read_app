@@ -179,7 +179,7 @@ public class ReadingActivity extends AppCompatActivity {
                         contentScrollView.scrollTo(0, 0);
                     }
                     
-                    Toast.makeText(ReadingActivity.this, "第 " + (currentPage + 1) + " 章", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(ReadingActivity.this, "第 " + (currentPage + 1) + " 章", Toast.LENGTH_SHORT).show();
                 });
             } catch (OutOfMemoryError e) {
                 Log.e(TAG, "内存不足，无法加载章节", e);
