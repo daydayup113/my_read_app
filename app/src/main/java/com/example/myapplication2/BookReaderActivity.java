@@ -14,6 +14,7 @@ import android.widget.GridLayout;
 import android.widget.ImageButton;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
 import androidx.appcompat.app.AppCompatActivity;
@@ -44,6 +45,7 @@ public class BookReaderActivity extends AppCompatActivity {
     private int currentChapterIndex = 0;
     private float startY;
     private float startX;
+    private float startScrollY; // 添加初始滚动位置变量
     private long downTime; // 添加按下时间变量
 
     // 添加一个变量来引用ScrollView
@@ -129,14 +131,14 @@ public class BookReaderActivity extends AppCompatActivity {
         if (contentTextView != null) {
             // 根据屏幕密度动态设置行间距
             float density = getResources().getDisplayMetrics().density;
-            float lineSpacingExtra = 4 * density; // 基础行间距4dp
-            float lineSpacingMultiplier = 1.2f;   // 行间距倍数
+            float lineSpacingExtra = 1 * density; // 进一步减少基础行间距到1dp
+            float lineSpacingMultiplier = 1.05f;   // 进一步减少行间距倍数到1.05f
             
             contentTextView.setLineSpacing(lineSpacingExtra, lineSpacingMultiplier);
             
             // 可以根据需要调整字距（需要API 21及以上）
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                contentTextView.setLetterSpacing(0.02f); // 字距调整
+                contentTextView.setLetterSpacing(0.0f); // 移除字距调整
             }
             
             Log.d(TAG, "adjustTextSpacing: 设置行间距和字距完成");
@@ -162,7 +164,7 @@ public class BookReaderActivity extends AppCompatActivity {
                 int titleHeight = titleTextView != null ? titleTextView.getHeight() : 0;
                 
                 // 计算内容区域可用高度(使用固定值32dp替代不存在的R.dimen.activity_vertical_margin)
-                int padding = (int) (32 * getResources().getDisplayMetrics().density);
+                int padding = (int) (32 * getResources().getDisplayMetrics().density); // 16dp 上下 padding
                 int availableHeight = screenHeight - buttonHeight - titleHeight - padding;
                 
                 Log.d(TAG, "屏幕高度: " + screenHeight + ", 按钮高度: " + buttonHeight + 
@@ -226,11 +228,106 @@ public class BookReaderActivity extends AppCompatActivity {
             }
         });
 
-        // 为区域检测层添加点击监听器
-        clickDetectionLayer.setOnClickListener(new View.OnClickListener() {
+        // 为区域检测层添加触摸监听器，用于处理滚动和点击事件
+        clickDetectionLayer.setOnTouchListener(new View.OnTouchListener() {
+            private static final int MIN_SCROLL_DISTANCE = 100;
+            private static final int MAX_CLICK_DISTANCE = 10;
+            private static final int MAX_CLICK_DURATION = 300;
+
             @Override
-            public void onClick(View v) {
-                // 这里处理点击事件
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startY = event.getY();
+                        startX = event.getX();
+                        downTime = System.currentTimeMillis();
+                        // 记录初始滚动位置
+                        startScrollY = scrollView.getScrollY();
+                        Log.d(TAG, "onTouch: ACTION_DOWN at Y=" + startY + ", X=" + startX);
+                        // 请求父视图不要拦截触摸事件
+                        scrollView.getParent().requestDisallowInterceptTouchEvent(true);
+                        return true;
+
+                    case MotionEvent.ACTION_MOVE:
+                        float deltaMoveY = event.getY() - startY;
+                        // 直接滚动ScrollView
+                        scrollView.scrollBy(0, (int) (-deltaMoveY));
+                        // 更新起始点，实现连续滚动
+                        startY = event.getY();
+                        Log.d(TAG, "onTouch: ACTION_MOVE at Y=" + event.getY() + ", X=" + event.getX() + ", deltaMoveY=" + deltaMoveY);
+                        return true;
+
+                    case MotionEvent.ACTION_UP:
+                        long upTime = System.currentTimeMillis();
+                        float endY = event.getY();
+                        float endX = event.getX();
+                        float deltaUpY = endY - startY;
+                        float deltaX = endX - startX;
+                        long touchDuration = upTime - downTime;
+
+                        Log.d(TAG, "onTouch: ACTION_UP at Y=" + endY + ", X=" + endX +
+                                ", duration=" + touchDuration + "ms, deltaUpY=" + deltaUpY + ", deltaX=" + deltaX);
+
+                        boolean isClick = touchDuration < MAX_CLICK_DURATION &&
+                                Math.abs(deltaX) < MAX_CLICK_DISTANCE &&
+                                Math.abs(deltaUpY) < MAX_CLICK_DISTANCE;
+
+                        if (isClick) {
+                            Log.d(TAG, "onTouch: 点击事件检测到");
+                            
+                            // 如果菜单层可见，则隐藏菜单层
+                            if (menuLayer.getVisibility() == View.VISIBLE) {
+                                Log.d(TAG, "onTouch: 菜单层可见，隐藏菜单层");
+                                hideMenuLayer();
+                            } 
+                            // 否则显示菜单层
+                            else {
+                                Log.d(TAG, "onTouch: 菜单层不可见，显示菜单层");
+                                showMenuLayer();
+                            }
+                            
+                            // 释放父视图对触摸事件的控制
+                            scrollView.getParent().requestDisallowInterceptTouchEvent(false);
+                            return true;
+                        }
+
+                        // 检查滑动距离是否足够触发翻页
+                        if (Math.abs(deltaUpY) > MIN_SCROLL_DISTANCE && Math.abs(deltaUpY) > Math.abs(deltaX)) {
+                            // 检查是否在ScrollView的顶部或底部，以决定是否翻页
+                            if (deltaUpY > 0 && scrollView.getScrollY() == 0) {
+                                Log.d(TAG, "onTouch: 向下滑动且在顶部，跳转到上一页");
+                                previousPage();
+                            } else if (deltaUpY < 0) {
+                                // 检查是否在底部
+                                int scrollViewHeight = scrollView.getHeight();
+                                ScrollView scrollViewInstance = (ScrollView) scrollView;
+                                int contentHeight = scrollViewInstance.getChildAt(0).getHeight();
+                                int scrollY = scrollView.getScrollY();
+                                
+                                // 如果接近底部，则跳转到下一页
+                                if (scrollY + scrollViewHeight >= contentHeight - 50) {
+                                    Log.d(TAG, "onTouch: 向上滑动且接近底部，跳转到下一页");
+                                    nextPage();
+                                }
+                            }
+                        }
+
+                        Log.d(TAG, "onTouch: 触摸事件未识别为点击或翻页滑动");
+                        // 释放父视图对触摸事件的控制
+                        scrollView.getParent().requestDisallowInterceptTouchEvent(false);
+                        break;
+
+                    case MotionEvent.ACTION_CANCEL:
+                        Log.d(TAG, "onTouch: ACTION_CANCEL");
+                        // 释放父视图对触摸事件的控制
+                        scrollView.getParent().requestDisallowInterceptTouchEvent(false);
+                        break;
+
+                    default:
+                        Log.d(TAG, "onTouch: 未知动作 " + event.getAction());
+                        break;
+                }
+                return true;
             }
         });
 
@@ -287,94 +384,7 @@ public class BookReaderActivity extends AppCompatActivity {
             }
         });
 
-        // 设置触摸监听器实现上下滑动翻页和点击显示菜单
-        contentTextView.setOnTouchListener(new View.OnTouchListener() {
-            private static final int MIN_SCROLL_DISTANCE = 100;
-            private static final int MAX_CLICK_DISTANCE = 10;
-            private static final int MAX_CLICK_DURATION = 300;
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        startY = event.getY();
-                        startX = event.getX();
-                        downTime = System.currentTimeMillis();
-                        Log.d(TAG, "onTouch: ACTION_DOWN at Y=" + startY + ", X=" + startX);
-                        // 请求父视图不要拦截触摸事件
-                        scrollView.getParent().requestDisallowInterceptTouchEvent(true);
-                        return false;
-
-                    case MotionEvent.ACTION_MOVE:
-                        Log.d(TAG, "onTouch: ACTION_MOVE at Y=" + event.getY() + ", X=" + event.getX());
-                        return false;
-
-                    case MotionEvent.ACTION_UP:
-                        long upTime = System.currentTimeMillis();
-                        float endY = event.getY();
-                        float endX = event.getX();
-                        float deltaY = endY - startY;
-                        float deltaX = endX - startX;
-                        long touchDuration = upTime - downTime;
-
-                        Log.d(TAG, "onTouch: ACTION_UP at Y=" + endY + ", X=" + endX +
-                                ", duration=" + touchDuration + "ms, deltaY=" + deltaY + ", deltaX=" + deltaX);
-
-                        boolean isClick = touchDuration < MAX_CLICK_DURATION &&
-                                Math.abs(deltaX) < MAX_CLICK_DISTANCE &&
-                                Math.abs(deltaY) < MAX_CLICK_DISTANCE;
-
-                        if (isClick) {
-                            Log.d(TAG, "onTouch: 点击事件检测到");
-                            
-                            // 如果菜单层可见，则隐藏菜单层
-                            if (menuLayer.getVisibility() == View.VISIBLE) {
-                                Log.d(TAG, "onTouch: 菜单层可见，隐藏菜单层");
-                                hideMenuLayer();
-                            } 
-                            // 否则显示菜单层
-                            else {
-                                Log.d(TAG, "onTouch: 菜单层不可见，显示菜单层");
-                                showMenuLayer();
-                            }
-                            
-                            // 释放父视图对触摸事件的控制
-                            scrollView.getParent().requestDisallowInterceptTouchEvent(false);
-                            return true;
-                        }
-
-                        if (Math.abs(deltaY) > MIN_SCROLL_DISTANCE && Math.abs(deltaY) > Math.abs(deltaX)) {
-                            if (deltaY > 0) {
-                                Log.d(TAG, "onTouch: 向下滑动，跳转到上一页");
-                                previousPage();
-                            } else {
-                                Log.d(TAG, "onTouch: 向上滑动，跳转到下一页");
-                                nextPage();
-                            }
-                            // 释放父视图对触摸事件的控制
-                            scrollView.getParent().requestDisallowInterceptTouchEvent(false);
-                            return true;
-                        }
-
-                        Log.d(TAG, "onTouch: 触摸事件未识别为点击或滑动");
-                        // 释放父视图对触摸事件的控制
-                        scrollView.getParent().requestDisallowInterceptTouchEvent(false);
-                        break;
-
-                    case MotionEvent.ACTION_CANCEL:
-                        Log.d(TAG, "onTouch: ACTION_CANCEL");
-                        // 释放父视图对触摸事件的控制
-                        scrollView.getParent().requestDisallowInterceptTouchEvent(false);
-                        break;
-
-                    default:
-                        Log.d(TAG, "onTouch: 未知动作 " + event.getAction());
-                        break;
-                }
-                return false;
-            }
-        });
-
+        // 移除contentTextView的触摸监听器，因为现在使用覆盖层处理触摸事件
     }
     
     // 初始化书籍加载
@@ -403,13 +413,12 @@ public class BookReaderActivity extends AppCompatActivity {
     // 处理菜单项点击事件
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        int itemId = item.getItemId();
-        if (itemId == R.id.menu_toc) {
+        if (item.getItemId() == R.id.menu_toc) {
             Log.d(TAG, "onOptionsItemSelected: TOC menu item selected");
             showTableOfContents();
             return true;
         }
-        Log.d(TAG, "onOptionsItemSelected: Unknown menu item selected: " + itemId);
+        Log.d(TAG, "onOptionsItemSelected: Unknown menu item selected: " + item.getItemId());
         return super.onOptionsItemSelected(item);
     }
 
@@ -582,23 +591,42 @@ public class BookReaderActivity extends AppCompatActivity {
     }
     
     /**
-     * 根据屏幕尺寸计算每页可显示的字符数
+     * 根据内容显示区域大小计算每页可显示的字符数
      * @return 每页字符数
      */
     private int calculateCharsPerPage() {
         // 获取屏幕相关信息
         android.util.DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        int screenHeight = displayMetrics.heightPixels;
         int screenWidth = displayMetrics.widthPixels;
+        int screenHeight = displayMetrics.heightPixels;
         float density = displayMetrics.density;
         
-        // 获取按钮区域和标题区域的大致高度
-        int buttonAreaHeight = (int) (80 * density); // 按钮区域高度约80dp
-        int titleAreaHeight = (int) (80 * density);   // 标题区域高度约80dp
-        int padding = (int) (32 * density);           // 上下padding共32dp
+        // 默认使用屏幕尺寸
+        int contentWidth = screenWidth;
+        int contentHeight = screenHeight;
         
-        // 计算可用于内容显示的高度
-        int contentHeight = screenHeight - buttonAreaHeight - titleAreaHeight - padding;
+        // 尝试获取更精确的内容区域尺寸
+        if (scrollView != null) {
+            // 获取ScrollView的实际尺寸
+            contentWidth = scrollView.getWidth();
+            contentHeight = scrollView.getHeight();
+            
+            // 如果ScrollView还没有确定尺寸，使用屏幕尺寸
+            if (contentWidth <= 0 || contentHeight <= 0) {
+                contentWidth = screenWidth;
+                contentHeight = screenHeight;
+            }
+            
+            // 减去padding（12dp * 2 = 24dp）
+            int horizontalPadding = (int) (24 * density);
+            contentWidth = Math.max(contentWidth - horizontalPadding, (int) (150 * density)); // 至少保留150dp宽度
+            
+            // 高度减去标题、按钮区域和其他padding，使用更保守的估计
+            int titleHeight = (int) (60 * density); // 标题区域高度约60dp
+            int buttonHeight = (int) (100 * density); // 按钮区域高度约100dp
+            int verticalPadding = (int) (60 * density); // 增加垂直方向的额外padding以提供更多空间
+            contentHeight = Math.max(contentHeight - titleHeight - buttonHeight - verticalPadding, (int) (100 * density));
+        }
         
         // 获取文本视图的文本大小
         float textSize = 16f; // 默认字体大小16sp
@@ -606,24 +634,28 @@ public class BookReaderActivity extends AppCompatActivity {
             textSize = contentTextView.getTextSize() / density; // 转换为dp
         }
         
-        // 估算每行字符数（根据屏幕宽度和字体大小）
-        int charsPerLine = (int) (screenWidth / (textSize * density));
+        // 估算每行字符数（根据内容宽度和字体大小）
+        int charsPerLine = (int) (contentWidth / (textSize * density));
         
         // 估算每页行数（根据内容高度和行高）
-        int lineHeight = (int) ((textSize + 8) * density); // 文本大小+行间距
+        float lineSpacingExtra = 2 * density; // 与adjustTextSpacing方法中保持一致
+        int lineHeight = (int) ((textSize + lineSpacingExtra) * 1.1f); // 与adjustTextSpacing方法中保持一致
         int linesPerPage = contentHeight / lineHeight;
         
-        // 计算每页字符数
-        int charsPerPage = charsPerLine * linesPerPage;
+        // 计算每页字符数，使用更保守的估算值
+        int charsPerPage = (int) (charsPerLine * linesPerPage * 0.6f); // 降低60%的估算值，留出更多余量
         
-        Log.d(TAG, "屏幕尺寸: " + screenWidth + "x" + screenHeight + 
+        // 确保每页至少有最小字符数，进一步降低最小字符数
+        charsPerPage = Math.max(charsPerPage, 200); // 降低最小字符数到200
+        
+        Log.d(TAG, "屏幕尺寸: " + screenWidth + "x" + screenHeight +
+                ", 内容区域尺寸: " + contentWidth + "x" + contentHeight + 
                 ", 密度: " + density + 
                 ", 每页字符数估算: " + charsPerPage +
                 ", 每页行数: " + linesPerPage +
                 ", 每行字符数: " + charsPerLine);
         
-        // 确保至少有最小字符数，避免页面过少
-        return Math.max(charsPerPage, 500);
+        return charsPerPage;
     }
 
     private void displayCurrentPage() {
@@ -659,6 +691,14 @@ public class BookReaderActivity extends AppCompatActivity {
                 
                 // 调整文本视图的行间距和字距
                 adjustTextSpacing();
+                
+                // 请求重新布局以确保高度正确
+                contentTextView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        contentTextView.requestLayout();
+                    }
+                });
             }
             
             Log.d(TAG, "displayCurrentPage: Content set to text view, length: " + 
@@ -666,19 +706,20 @@ public class BookReaderActivity extends AppCompatActivity {
 
             // 显示书名和当前页码
             if (titleTextView != null) {
-                if (epubBook != null) {
+                Spine spineVar = epubBook != null ? epubBook.getSpine() : null;
+                if (epubBook != null && spineVar != null) {
                     String title = epubBook.getTitle();
                     if (title != null && !title.isEmpty()) {
-                        titleTextView.setText(title + " (" + (currentChapterIndex + 1) + "/" + spine.size() + ")" + 
+                        titleTextView.setText(title + " (" + (currentChapterIndex + 1) + "/" + spineVar.size() + ")" + 
                                 " 第" + (currentPageIndex + 1) + "页/" + (pageContents != null ? pageContents.size() : 0) + "页");
                         Log.d(TAG, "displayCurrentPage: Title set to: " + title);
                     } else {
-                        titleTextView.setText("书籍内容 (" + (currentChapterIndex + 1) + "/" + spine.size() + ")" + 
+                        titleTextView.setText("书籍内容 (" + (currentChapterIndex + 1) + "/" + spineVar.size() + ")" + 
                                 " 第" + (currentPageIndex + 1) + "页/" + (pageContents != null ? pageContents.size() : 0) + "页");
                         Log.d(TAG, "displayCurrentPage: Using default title");
                     }
                 } else {
-                    titleTextView.setText("书籍内容 (" + (currentChapterIndex + 1) + "/" + spine.size() + ")" + 
+                    titleTextView.setText("书籍内容 (" + (currentChapterIndex + 1) + "/" + (spineVar != null ? spineVar.size() : 0) + ")" + 
                             " 第" + (currentPageIndex + 1) + "页/" + (pageContents != null ? pageContents.size() : 0) + "页");
                     Log.d(TAG, "displayCurrentPage: epubBook is null, using default title");
                 }
@@ -792,13 +833,13 @@ public class BookReaderActivity extends AppCompatActivity {
             
             // 更新标题显示
             if (epubBook != null) {
-                Spine spine = epubBook.getSpine();
+                Spine spineVar = epubBook.getSpine();
                 String title = epubBook.getTitle();
                 if (title != null && !title.isEmpty()) {
-                    titleTextView.setText(title + " (" + (currentChapterIndex + 1) + "/" + spine.size() + ")" + 
+                    titleTextView.setText(title + " (" + (currentChapterIndex + 1) + "/" + spineVar.size() + ")" + 
                             " 第" + (currentPageIndex + 1) + "页/" + pageContents.size() + "页");
                 } else {
-                    titleTextView.setText("书籍内容 (" + (currentChapterIndex + 1) + "/" + spine.size() + ")" + 
+                    titleTextView.setText("书籍内容 (" + (currentChapterIndex + 1) + "/" + spineVar.size() + ")" + 
                             " 第" + (currentPageIndex + 1) + "页/" + pageContents.size() + "页");
                 }
             }
@@ -901,48 +942,63 @@ public class BookReaderActivity extends AppCompatActivity {
         builder.setNegativeButton("取消", (dialog, which) -> {
             Log.d(TAG, "showTocDialog: Cancel button clicked");
         });
-        builder.show();
-    }
 
-    // 显示菜单层
-    private void showMenuLayer() {
-        Log.d(TAG, "显示菜单层");
-        menuLayer.setVisibility(View.VISIBLE);
-        // 隐藏区域检测层，避免干扰
-        clickDetectionLayer.setVisibility(View.GONE);
-    }
-
-    // 隐藏菜单层
-    private void hideMenuLayer() {
-        Log.d(TAG, "隐藏菜单层");
-        menuLayer.setVisibility(View.GONE);
-        // 显示区域检测层
-        clickDetectionLayer.setVisibility(View.VISIBLE);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+        Log.d(TAG, "showTocDialog: Dialog shown");
     }
 
     // 处理单元格点击事件
     private void handleCellClick(int index, boolean isCenter) {
-        Log.d(TAG, "handleCellClick: 点击了区域 " + index + (isCenter ? " (中间区域)" : " (边缘区域)"));
+        Log.d(TAG, "handleCellClick: Handling click for cell " + index + ", isCenter: " + isCenter);
         
-        // 只在中间区域点击时显示菜单层
+        // 中心区域点击显示菜单
         if (isCenter) {
-            Log.d(TAG, "handleCellClick: 在中间区域点击，显示菜单层");
-            if (menuLayer.getVisibility() != View.VISIBLE) {
-                showMenuLayer();
-            } else {
+            Log.d(TAG, "handleCellClick: Center area clicked, toggling menu");
+            if (menuLayer.getVisibility() == View.VISIBLE) {
                 hideMenuLayer();
+            } else {
+                showMenuLayer();
             }
-        } else {
-            Log.d(TAG, "handleCellClick: 在边缘区域点击，不执行操作");
+        } 
+        // 边缘区域点击翻页
+        else {
+            // 根据索引判断是上一页还是下一页
+            if (index < 8) { // 上半部分
+                Log.d(TAG, "handleCellClick: Upper area clicked, going to previous page");
+                previousPage();
+            } else { // 下半部分
+                Log.d(TAG, "handleCellClick: Lower area clicked, going to next page");
+                nextPage();
+            }
         }
     }
 
-    // 显示/隐藏菜单层
-    private void toggleMenuLayer() {
-        if (menuLayer.getVisibility() == View.VISIBLE) {
-            hideMenuLayer();
-        } else {
-            showMenuLayer();
+    // 显示菜单层
+    private void showMenuLayer() {
+        Log.d(TAG, "showMenuLayer: Showing menu layer");
+        if (menuLayer != null) {
+            menuLayer.setVisibility(View.VISIBLE);
         }
     }
+
+    // 隐藏菜单层
+    private void hideMenuLayer() {
+        Log.d(TAG, "hideMenuLayer: Hiding menu layer");
+        if (menuLayer != null) {
+            menuLayer.setVisibility(View.GONE);
+        }
+    }
+
+    // 添加菜单项的点击处理
+//    private void handleMenuItemClick(int menuItemId) {
+//        Log.d(TAG, "handleMenuItemClick: Handling menu item click for " + menuItemId);
+//        // 根据菜单项ID执行相应操作
+//        switch (menuItemId) {
+//            case R.id.menu_toc:
+//                showTableOfContents();
+//                break;
+//            // 可以添加更多菜单项处理
+//        }
+//    }
 }

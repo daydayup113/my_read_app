@@ -1,33 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context=".TableOfContentsActivity">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="EPUB 阅读器"
+        android:text="章节目录"
         android:textSize="24sp"
         android:textStyle="bold"
         android:gravity="center"
         android:padding="16dp" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/booksRecyclerView"
+    <ListView
+        android:id="@+id/tocListView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:padding="8dp" />
-
-    <Button
-        android:id="@+id/addBookButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="添加 EPUB 文件"
-        android:layout_margin="16dp" />
 
 </LinearLayout>

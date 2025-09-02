@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ReadingActivity">
+
+    <ScrollView
+        android:id="@+id/contentScrollView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            android:id="@+id/contentTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:textSize="18sp"
+            android:lineSpacingExtra="4dp"
+            android:text="书籍内容将在这里显示..." />
+    </ScrollView>
+
+    <!-- 上一页按钮 -->
+    <Button
+        android:id="@+id/previousPageButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="16dp"
+        android:text="上一页"
+        android:visibility="gone" />
+
+    <!-- 下一页按钮 -->
+    <Button
+        android:id="@+id/nextPageButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:text="下一页"
+        android:visibility="gone" />
+
+    <!-- 菜单层 -->
+    <LinearLayout
+        android:id="@+id/menuLayer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:background="#80000000">
+
+        <!-- 顶部菜单 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:background="#FFFFFF">
+
+            <Button
+                android:id="@+id/backButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="返回" />
+
+        </LinearLayout>
+
+        <!-- 中间区域（点击隐藏菜单） -->
+        <View
+            android:id="@+id/menuCenterArea"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- 底部菜单 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:padding="16dp"
+            android:background="#FFFFFF">
+
+            <Button
+                android:id="@+id/tocButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="目录" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>
