@@ -160,7 +160,8 @@ public class MainActivity extends AppCompatActivity {
             File bookFile = new File(booksDirectory, savedFileName);
             Uri localUri = Uri.fromFile(bookFile);
             
-            EPUBBook book = new EPUBBook(localUri, fileName);
+            // 创建EPUBBook对象，包含作者和进度信息
+            EPUBBook book = new EPUBBook(localUri, fileName, "未知作者", 0, 0);
             epubBooks.add(book);
             booksAdapter.notifyItemInserted(epubBooks.size() - 1);
             saveBooks(); // 保存书籍列表
@@ -280,10 +281,16 @@ public class MainActivity extends AppCompatActivity {
         
         for (int i = 0; i < epubBooks.size(); i++) {
             EPUBBook book = epubBooks.get(i);
-            // 格式：uri|title
+            // 格式：uri|title|author|currentPage|totalPages
             bookListString.append(book.getUri().toString())
                     .append("|")
-                    .append(book.getTitle());
+                    .append(book.getTitle())
+                    .append("|")
+                    .append(book.getAuthor())
+                    .append("|")
+                    .append(book.getCurrentPage())
+                    .append("|")
+                    .append(book.getTotalPages());
             
             //如果不是最后一个元素，添加分隔符
             if (i < epubBooks.size() - 1) {
@@ -303,13 +310,29 @@ public class MainActivity extends AppCompatActivity {
             String[] bookStrings = bookListString.split(";;");
             
             for (String bookString : bookStrings) {
-                String[] parts = bookString.split("\\|", 2);
-                if (parts.length == 2) {
+                String[] parts = bookString.split("\\|", -1); // 使用-1限制避免丢弃空值
+                if (parts.length >= 5) {
                     Uri uri = Uri.parse(parts[0]);
                     String title = parts[1];
+                    String author = parts[2];
+                    int currentPage = 0;
+                    int totalPages = 0;
+                    
+                    try {
+                        currentPage = Integer.parseInt(parts[3]);
+                        totalPages = Integer.parseInt(parts[4]);
+                    } catch (NumberFormatException e) {
+                        // 如果解析失败，使用默认值
+                        currentPage = 0;
+                        totalPages = 0;
+                    }
+                    
                     // 检查本地文件是否仍然存在
                     if (isLocalFileValid(uri)) {
-                        epubBooks.add(new EPUBBook(uri, title));
+                        // 更新当前页和总页数
+                        currentPage = getBookCurrentPage(uri);
+                        totalPages = getBookTotalChapters(uri);
+                        epubBooks.add(new EPUBBook(uri, title, author, currentPage, totalPages));
                     } else {
                         // 删除不存在的文件对应的条目
                         removeInvalidBookEntry(uri);
@@ -319,6 +342,18 @@ public class MainActivity extends AppCompatActivity {
             
             booksAdapter.notifyDataSetChanged();
         }
+    }
+    
+    // 获取书籍的总章节数
+    private int getBookTotalChapters(Uri bookUri) {
+        SharedPreferences prefs = getSharedPreferences("ReadingProgress", MODE_PRIVATE);
+        return prefs.getInt(bookUri.toString() + "_total", 0);
+    }
+    
+    // 获取书籍的当前阅读进度
+    private int getBookCurrentPage(Uri bookUri) {
+        SharedPreferences prefs = getSharedPreferences("ReadingProgress", MODE_PRIVATE);
+        return prefs.getInt(bookUri.toString(), 0);
     }
     
     // 移除无效书籍条目（不删除文件）

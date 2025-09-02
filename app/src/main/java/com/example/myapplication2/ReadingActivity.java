@@ -175,6 +175,9 @@ public class ReadingActivity extends AppCompatActivity {
                     spineReferences = spine.getSpineReferences();
                     Log.d(TAG, "loadBookContent: spineReferences size=" + spineReferences.size());
                     
+                    // 保存总章节数
+                    saveTotalChapters(spineReferences.size());
+                    
                     // 恢复阅读进度
                     int savedPage = getSavedProgress();
                     Log.d(TAG, "loadBookContent: savedPage=" + savedPage);
@@ -369,7 +372,17 @@ public class ReadingActivity extends AppCompatActivity {
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putInt(bookUri.toString(), page);
             editor.apply();
+            
+            // 更新书籍列表中的进度信息
+            updateBookProgress(page);
         }
+    }
+    
+    // 更新书籍列表中的进度信息
+    private void updateBookProgress(int page) {
+        // 在实际应用中，这里应该更新书籍列表中的进度信息
+        // 由于当前架构限制，我们只记录日志
+        Log.d(TAG, "updateBookProgress: Updating book progress to page " + page);
     }
     
     // 获取保存的阅读进度
@@ -389,5 +402,26 @@ public class ReadingActivity extends AppCompatActivity {
         Log.d(TAG, "onPause: Saving current progress, currentPage=" + currentPage);
         // 在页面暂停时保存当前进度
         saveProgress(currentPage);
+    }
+    
+    // 保存总章节数
+    private void saveTotalChapters(int totalPages) {
+        Log.d(TAG, "saveTotalChapters: totalPages=" + totalPages);
+        if (bookUri != null) {
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putInt(bookUri.toString() + "_total", totalPages);
+            editor.apply();
+        }
+    }
+    
+    // 获取总章节数
+    private int getTotalChapters() {
+        if (bookUri != null) {
+            int totalPages = sharedPreferences.getInt(bookUri.toString() + "_total", 0);
+            Log.d(TAG, "getTotalChapters: totalPages=" + totalPages);
+            return totalPages;
+        }
+        Log.d(TAG, "getTotalChapters: bookUri is null, returning 0");
+        return 0;
     }
 }
