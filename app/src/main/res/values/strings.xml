@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">阅读</string>
+    <string name="BACK">返回</string>
+    <string name="FONTCONF">字体设置</string>
+    <string name="FONT">字体</string>
+    <string name="NIGHT_MODE">夜间模式</string>
+    <string name="DIRECTORY">目录</string>
+    <string name="TITLE">书籍标题</string>
+    <string name="BOOK_CONTENT">书籍内容将显示在这里</string>
+    <string name="PREVIOUS">上一页</string>
+    <string name="NEXT">下一页</string>
 </resources>

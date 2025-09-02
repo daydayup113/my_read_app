@@ -59,6 +59,10 @@ public class BookReaderActivity extends AppCompatActivity {
     private ImageButton backButton;
     private ImageButton tocButton;
     private View menuBackground;
+    
+    // 分页相关变量
+    private List<String> pageContents = new ArrayList<>(); // 存储分页后的内容
+    private int currentPageIndex = 0; // 当前页索引
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +86,18 @@ public class BookReaderActivity extends AppCompatActivity {
         initializeBookLoading();
     }
     
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume: 调整内容区域以适应屏幕尺寸");
+        // 屏幕尺寸可能已更改（如旋转），重新调整内容区域
+        adjustContentArea();
+        
+        // 调整文本视图的行间距和字距
+        adjustTextSpacing();
+    }
+    
+    
     // 初始化视图引用
     private void initializeViews() {
         titleTextView = findViewById(R.id.titleTextView);
@@ -98,6 +114,61 @@ public class BookReaderActivity extends AppCompatActivity {
         backButton = findViewById(R.id.backButton);
         tocButton = findViewById(R.id.tocButton);
         menuBackground = findViewById(R.id.menuBackground);
+        
+        // 动态调整内容区域
+        adjustContentArea();
+        
+        // 动态设置文本视图的行间距和字距
+        adjustTextSpacing();
+    }
+    
+    /**
+     * 动态调整文本视图的行间距和字距
+     */
+    private void adjustTextSpacing() {
+        if (contentTextView != null) {
+            // 根据屏幕密度动态设置行间距
+            float density = getResources().getDisplayMetrics().density;
+            float lineSpacingExtra = 4 * density; // 基础行间距4dp
+            float lineSpacingMultiplier = 1.2f;   // 行间距倍数
+            
+            contentTextView.setLineSpacing(lineSpacingExtra, lineSpacingMultiplier);
+            
+            // 可以根据需要调整字距（需要API 21及以上）
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                contentTextView.setLetterSpacing(0.02f); // 字距调整
+            }
+            
+            Log.d(TAG, "adjustTextSpacing: 设置行间距和字距完成");
+        }
+    }
+    
+    /**
+     * 动态调整内容显示区域，确保在不同屏幕尺寸上正确显示
+     */
+    private void adjustContentArea() {
+        // 使用post方法确保在布局完成后执行
+        contentTextView.post(new Runnable() {
+            @Override
+            public void run() {
+                // 获取屏幕高度
+                int screenHeight = getResources().getDisplayMetrics().heightPixels;
+                
+                // 获取按钮区域高度
+                View buttonLayout = findViewById(R.id.buttonLayout);
+                int buttonHeight = buttonLayout != null ? buttonLayout.getHeight() : 0;
+                
+                // 获取标题区域高度
+                int titleHeight = titleTextView != null ? titleTextView.getHeight() : 0;
+                
+                // 计算内容区域可用高度(使用固定值32dp替代不存在的R.dimen.activity_vertical_margin)
+                int padding = (int) (32 * getResources().getDisplayMetrics().density);
+                int availableHeight = screenHeight - buttonHeight - titleHeight - padding;
+                
+                Log.d(TAG, "屏幕高度: " + screenHeight + ", 按钮高度: " + buttonHeight + 
+                        ", 标题高度: " + titleHeight + ", 可用高度: " + availableHeight);
+            }
+        });
     }
     
     // 初始化点击事件监听器
@@ -348,18 +419,21 @@ public class BookReaderActivity extends AppCompatActivity {
         protected Book doInBackground(String... params) {
             String path = params[0];
             Log.d(TAG, "LoadBookTask: Loading book from " + path);
-            try {
-                File file = new File(path);
-                InputStream inputStream = new FileInputStream(file);
+            try (FileInputStream inputStream = new FileInputStream(new File(path))) {
                 // 使用try-with-resources确保资源正确关闭
                 Book book = (new EpubReader()).readEpub(inputStream);
-                inputStream.close();
                 return book;
+            } catch (OutOfMemoryError e) {
+                Log.e(TAG, "LoadBookTask: OutOfMemoryError loading book: " + e.getMessage());
+                return null;
             } catch (IOException e) {
-                Log.e(TAG, "LoadBookTask: Error loading book: " + e.getMessage());
+                Log.e(TAG, "LoadBookTask: IOException loading book: " + e.getMessage());
                 return null;
             } catch (Exception e) {
                 Log.e(TAG, "LoadBookTask: Unexpected error loading book: " + e.getMessage());
+                return null;
+            } catch (Throwable t) {
+                Log.e(TAG, "LoadBookTask: Unexpected throwable loading book: " + t.getMessage());
                 return null;
             }
         }
@@ -394,6 +468,11 @@ public class BookReaderActivity extends AppCompatActivity {
 
         try {
             SpineReference spineReference = spine.getSpineReferences().get(chapterIndex);
+            if (spineReference == null) {
+                Log.w(TAG, "getChapterContent: spineReference is null");
+                return "章节内容无法加载";
+            }
+            
             Resource resource = spineReference.getResource();
             
             // 检查资源是否有效
@@ -409,7 +488,19 @@ public class BookReaderActivity extends AppCompatActivity {
                 return "章节内容无法加载";
             }
             
+            // 检查数据长度
+            if (data.length == 0) {
+                Log.w(TAG, "getChapterContent: resource data is empty");
+                return "章节内容为空";
+            }
+            
             String content = new String(data, "UTF-8");
+            
+            // 检查内容是否为空
+            if (content == null || content.isEmpty()) {
+                Log.w(TAG, "getChapterContent: content is null or empty");
+                return "章节内容为空";
+            }
             
             // 简单提取文本内容（实际应用中可能需要解析HTML）
             content = content.replaceAll("<[^>]*>", "");
@@ -421,7 +512,118 @@ public class BookReaderActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.e(TAG, "getChapterContent: Error getting chapter content: " + e.getMessage());
             return "章节内容加载失败";
+        } catch (Throwable t) {
+            Log.e(TAG, "getChapterContent: Unexpected error getting chapter content: " + t.getMessage());
+            return "章节内容加载失败";
         }
+    }
+    
+    /**
+     * 将章节内容分页
+     * @param content 章节完整内容
+     * @return 分页后的内容列表
+     */
+    private List<String> paginateChapterContent(String content) {
+        List<String> pages = new ArrayList<>();
+        try {
+            if (content == null || content.isEmpty()) {
+                pages.add("");
+                return pages;
+            }
+            
+            // 根据屏幕尺寸动态计算每页字符数
+            int charsPerPage = calculateCharsPerPage();
+            
+            // 分割内容为多页，确保句子完整性
+            int length = content.length();
+            int start = 0;
+            
+            while (start < length) {
+                int end = Math.min(start + charsPerPage, length);
+                
+                // 尽量在句号或段落结尾处分页
+                if (end < length) {
+                    // 向后查找句号或段落结尾
+                    while (end > start && content.charAt(end) != '。' && content.charAt(end) != '\n') {
+                        end--;
+                    }
+                    
+                    // 如果找不到句号或段落结尾，则在原位置分页
+                    if (end <= start) {
+                        end = start + charsPerPage;
+                    } else {
+                        // 包含句号或换行符
+                        end++;
+                    }
+                }
+                
+                if (end > start) {
+                    pages.add(content.substring(start, end));
+                }
+                
+                start = end;
+            }
+            
+            // 如果没有分页，则添加整个内容
+            if (pages.isEmpty()) {
+                pages.add(content);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "paginateChapterContent: Error paginating content: " + e.getMessage());
+            pages.clear();
+            pages.add("内容分页失败");
+        } catch (Throwable t) {
+            Log.e(TAG, "paginateChapterContent: Unexpected error paginating content: " + t.getMessage());
+            pages.clear();
+            pages.add("内容分页失败");
+        }
+        
+        return pages;
+    }
+    
+    /**
+     * 根据屏幕尺寸计算每页可显示的字符数
+     * @return 每页字符数
+     */
+    private int calculateCharsPerPage() {
+        // 获取屏幕相关信息
+        android.util.DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        int screenHeight = displayMetrics.heightPixels;
+        int screenWidth = displayMetrics.widthPixels;
+        float density = displayMetrics.density;
+        
+        // 获取按钮区域和标题区域的大致高度
+        int buttonAreaHeight = (int) (80 * density); // 按钮区域高度约80dp
+        int titleAreaHeight = (int) (80 * density);   // 标题区域高度约80dp
+        int padding = (int) (32 * density);           // 上下padding共32dp
+        
+        // 计算可用于内容显示的高度
+        int contentHeight = screenHeight - buttonAreaHeight - titleAreaHeight - padding;
+        
+        // 获取文本视图的文本大小
+        float textSize = 16f; // 默认字体大小16sp
+        if (contentTextView != null) {
+            textSize = contentTextView.getTextSize() / density; // 转换为dp
+        }
+        
+        // 估算每行字符数（根据屏幕宽度和字体大小）
+        int charsPerLine = (int) (screenWidth / (textSize * density));
+        
+        // 估算每页行数（根据内容高度和行高）
+        int lineHeight = (int) ((textSize + 8) * density); // 文本大小+行间距
+        int linesPerPage = contentHeight / lineHeight;
+        
+        // 计算每页字符数
+        int charsPerPage = charsPerLine * linesPerPage;
+        
+        Log.d(TAG, "屏幕尺寸: " + screenWidth + "x" + screenHeight + 
+                ", 密度: " + density + 
+                ", 每页字符数估算: " + charsPerPage +
+                ", 每页行数: " + linesPerPage +
+                ", 每行字符数: " + charsPerLine);
+        
+        // 确保至少有最小字符数，避免页面过少
+        return Math.max(charsPerPage, 500);
     }
 
     private void displayCurrentPage() {
@@ -437,37 +639,75 @@ public class BookReaderActivity extends AppCompatActivity {
             return;
         }
 
-        // 按需加载当前章节内容
-        String content = getChapterContent(currentChapterIndex);
-        contentTextView.setText(content);
-        Log.d(TAG, "displayCurrentPage: Content set to text view, length: " + content.length());
-
-        // 显示书名和当前页码
-        if (epubBook != null) {
-            String title = epubBook.getTitle();
-            if (title != null && !title.isEmpty()) {
-                titleTextView.setText(title + " (" + (currentChapterIndex + 1) + "/" + spine.size() + ")");
-                Log.d(TAG, "displayCurrentPage: Title set to: " + title);
-            } else {
-                titleTextView.setText("书籍内容 (" + (currentChapterIndex + 1) + "/" + spine.size() + ")");
-                Log.d(TAG, "displayCurrentPage: Using default title");
+        try {
+            // 按需加载当前章节内容
+            String content = getChapterContent(currentChapterIndex);
+            
+            // 对内容进行分页处理
+            pageContents = paginateChapterContent(content);
+            
+            // 重置当前页索引
+            currentPageIndex = 0;
+            
+            // 显示当前页内容
+            if (contentTextView != null) {
+                if (pageContents != null && !pageContents.isEmpty()) {
+                    contentTextView.setText(pageContents.get(currentPageIndex));
+                } else {
+                    contentTextView.setText("");
+                }
+                
+                // 调整文本视图的行间距和字距
+                adjustTextSpacing();
             }
-        } else {
-            titleTextView.setText("书籍内容 (" + (currentChapterIndex + 1) + "/" + spine.size() + ")");
-            Log.d(TAG, "displayCurrentPage: epubBook is null, using default title");
+            
+            Log.d(TAG, "displayCurrentPage: Content set to text view, length: " + 
+                    (pageContents != null && !pageContents.isEmpty() ? pageContents.get(currentPageIndex).length() : 0));
+
+            // 显示书名和当前页码
+            if (titleTextView != null) {
+                if (epubBook != null) {
+                    String title = epubBook.getTitle();
+                    if (title != null && !title.isEmpty()) {
+                        titleTextView.setText(title + " (" + (currentChapterIndex + 1) + "/" + spine.size() + ")" + 
+                                " 第" + (currentPageIndex + 1) + "页/" + (pageContents != null ? pageContents.size() : 0) + "页");
+                        Log.d(TAG, "displayCurrentPage: Title set to: " + title);
+                    } else {
+                        titleTextView.setText("书籍内容 (" + (currentChapterIndex + 1) + "/" + spine.size() + ")" + 
+                                " 第" + (currentPageIndex + 1) + "页/" + (pageContents != null ? pageContents.size() : 0) + "页");
+                        Log.d(TAG, "displayCurrentPage: Using default title");
+                    }
+                } else {
+                    titleTextView.setText("书籍内容 (" + (currentChapterIndex + 1) + "/" + spine.size() + ")" + 
+                            " 第" + (currentPageIndex + 1) + "页/" + (pageContents != null ? pageContents.size() : 0) + "页");
+                    Log.d(TAG, "displayCurrentPage: epubBook is null, using default title");
+                }
+            }
+
+            // 每次显示新页面时滚动到顶部
+            if (scrollView != null) {
+                scrollView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        scrollView.scrollTo(0, 0);
+                        Log.d(TAG, "displayCurrentPage: Scrolled to top");
+                    }
+                });
+            }
+
+            // 更新按钮状态
+            updateButtonState();
+        } catch (Exception e) {
+            Log.e(TAG, "displayCurrentPage: Error displaying page: " + e.getMessage());
+            if (contentTextView != null) {
+                contentTextView.setText("页面显示失败: " + e.getMessage());
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "displayCurrentPage: Unexpected error displaying page: " + t.getMessage());
+            if (contentTextView != null) {
+                contentTextView.setText("页面显示失败");
+            }
         }
-
-        // 每次显示新页面时滚动到顶部
-        scrollView.post(new Runnable() {
-            @Override
-            public void run() {
-                scrollView.scrollTo(0, 0);
-                Log.d(TAG, "displayCurrentPage: Scrolled to top");
-            }
-        });
-
-        // 更新按钮状态
-        updateButtonState();
     }
 
     // 更新按钮的可用状态
@@ -477,45 +717,108 @@ public class BookReaderActivity extends AppCompatActivity {
         Spine spine = epubBook.getSpine();
         if (spine == null) return;
         
-        boolean prevEnabled = currentChapterIndex > 0;
-        boolean nextEnabled = currentChapterIndex < spine.size() - 1;
+        // 计算上一页和下一页按钮的可用状态
+        boolean prevEnabled = (currentChapterIndex > 0) || (currentPageIndex > 0);
+        boolean nextEnabled = (currentChapterIndex < spine.size() - 1) || (currentPageIndex < pageContents.size() - 1);
 
         previousButton.setEnabled(prevEnabled);
         nextButton.setEnabled(nextEnabled);
 
         Log.d(TAG, "updateButtonState: Previous button enabled: " + prevEnabled +
                 ", Next button enabled: " + nextEnabled +
-                " (current index: " + currentChapterIndex +
-                ", total chapters: " + spine.size() + ")");
+                " (chapter index: " + currentChapterIndex +
+                ", page index: " + currentPageIndex +
+                ", total chapters: " + spine.size() + 
+                ", total pages in current chapter: " + pageContents.size() + ")");
     }
 
     private void nextPage() {
-        Log.d(TAG, "nextPage: 当前索引: " + currentChapterIndex);
+        Log.d(TAG, "nextPage: 当前章节索引: " + currentChapterIndex + ", 当前页索引: " + currentPageIndex);
         if (epubBook == null) return;
         
         Spine spine = epubBook.getSpine();
         if (spine == null) return;
         
-        if (currentChapterIndex < spine.size() - 1) {
+        // 如果当前页不是章节的最后一页，则显示下一页
+        if (currentPageIndex < pageContents.size() - 1) {
+            currentPageIndex++;
+            if (contentTextView != null) {
+                contentTextView.setText(pageContents.get(currentPageIndex));
+                // 调整文本视图的行间距和字距
+                adjustTextSpacing();
+            }
+            
+            // 更新标题显示
+            if (epubBook != null) {
+                String title = epubBook.getTitle();
+                if (title != null && !title.isEmpty()) {
+                    titleTextView.setText(title + " (" + (currentChapterIndex + 1) + "/" + spine.size() + ")" + 
+                            " 第" + (currentPageIndex + 1) + "页/" + pageContents.size() + "页");
+                } else {
+                    titleTextView.setText("书籍内容 (" + (currentChapterIndex + 1) + "/" + spine.size() + ")" + 
+                            " 第" + (currentPageIndex + 1) + "页/" + pageContents.size() + "页");
+                }
+            }
+            
+            Log.d(TAG, "nextPage: 显示章节内下一页，页索引: " + currentPageIndex);
+        } 
+        // 如果当前页是章节的最后一页，且不是最后一章，则跳转到下一章
+        else if (currentChapterIndex < spine.size() - 1) {
             currentChapterIndex++;
-            Log.d(TAG, "nextPage: 跳转到下一页，新索引: " + currentChapterIndex);
+            Log.d(TAG, "nextPage: 跳转到下一章，新章节索引: " + currentChapterIndex);
             displayCurrentPage();
         } else {
             Log.d(TAG, "nextPage: 已经是最后一页了");
-            contentTextView.setText("已经是最后一页了");
+            if (contentTextView != null) {
+                contentTextView.setText("已经是最后一页了");
+            }
         }
+        
+        // 更新按钮状态
+        updateButtonState();
     }
 
     private void previousPage() {
-        Log.d(TAG, "previousPage: 当前索引: " + currentChapterIndex);
-        if (currentChapterIndex > 0) {
+        Log.d(TAG, "previousPage: 当前章节索引: " + currentChapterIndex + ", 当前页索引: " + currentPageIndex);
+        
+        // 如果当前页不是章节的第一页，则显示上一页
+        if (currentPageIndex > 0) {
+            currentPageIndex--;
+            if (contentTextView != null) {
+                contentTextView.setText(pageContents.get(currentPageIndex));
+                // 调整文本视图的行间距和字距
+                adjustTextSpacing();
+            }
+            
+            // 更新标题显示
+            if (epubBook != null) {
+                Spine spine = epubBook.getSpine();
+                String title = epubBook.getTitle();
+                if (title != null && !title.isEmpty()) {
+                    titleTextView.setText(title + " (" + (currentChapterIndex + 1) + "/" + spine.size() + ")" + 
+                            " 第" + (currentPageIndex + 1) + "页/" + pageContents.size() + "页");
+                } else {
+                    titleTextView.setText("书籍内容 (" + (currentChapterIndex + 1) + "/" + spine.size() + ")" + 
+                            " 第" + (currentPageIndex + 1) + "页/" + pageContents.size() + "页");
+                }
+            }
+            
+            Log.d(TAG, "previousPage: 显示章节内上一页，页索引: " + currentPageIndex);
+        } 
+        // 如果当前页是章节的第一页，且不是第一章，则跳转到上一章
+        else if (currentChapterIndex > 0) {
             currentChapterIndex--;
-            Log.d(TAG, "previousPage: 跳转到上一页，新索引: " + currentChapterIndex);
+            Log.d(TAG, "previousPage: 跳转到上一章，新章节索引: " + currentChapterIndex);
             displayCurrentPage();
         } else {
             Log.d(TAG, "previousPage: 已经是第一页了");
-            contentTextView.setText("已经是第一页了");
+            if (contentTextView != null) {
+                contentTextView.setText("已经是第一页了");
+            }
         }
+        
+        // 更新按钮状态
+        updateButtonState();
     }
 
     // 显示目录
