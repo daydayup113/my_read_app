@@ -232,6 +232,9 @@ public class ReadingActivity extends AppCompatActivity {
 
     private void loadBookContent() {
         Log.d(TAG, "loadBookContent: Starting to load book content");
+        // 显示加载提示
+        contentTextView.setText("加载中");
+        
         new Thread(() -> {
             try {
                 epubBook = loadEpubBook();

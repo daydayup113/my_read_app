@@ -18,7 +18,8 @@
             android:padding="16dp"
             android:textSize="18sp"
             android:lineSpacingExtra="4dp"
-            android:text="书籍内容将在这里显示..." />
+            android:text="加载中" />
+
     </ScrollView>
 
     <!-- 中间点击区域，用于显示菜单 -->
