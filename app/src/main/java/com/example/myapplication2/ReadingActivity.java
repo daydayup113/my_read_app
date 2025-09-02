@@ -119,7 +119,7 @@ public class ReadingActivity extends AppCompatActivity {
                     // 恢复阅读进度
                     int savedPage = getSavedProgress();
                     // 加载保存的页面内容或第一页内容
-                    loadPageContent(savedPage);
+                    loadPageContent(savedPage, true); // 恢复进度时保持滚动位置
                 } else {
                     runOnUiThread(() -> {
                         contentTextView.setText("无法加载书籍内容");
@@ -151,7 +151,7 @@ public class ReadingActivity extends AppCompatActivity {
         }
     }
     
-    private void loadPageContent(int pageIndex) {
+    private void loadPageContent(int pageIndex, boolean preserveScrollPosition) {
         if (spineReferences == null || pageIndex < 0 || pageIndex >= spineReferences.size()) {
             runOnUiThread(() -> {
                 contentTextView.setText("没有更多内容");
@@ -173,6 +173,12 @@ public class ReadingActivity extends AppCompatActivity {
                     }
                     currentPage = pageIndex;
                     updatePageButtons();
+                    
+                    // 只有在恢复进度时才保持滚动位置，翻页时滚动到顶部
+                    if (!preserveScrollPosition) {
+                        contentScrollView.scrollTo(0, 0);
+                    }
+                    
                     Toast.makeText(ReadingActivity.this, "第 " + (currentPage + 1) + " 章", Toast.LENGTH_SHORT).show();
                 });
             } catch (OutOfMemoryError e) {
@@ -189,6 +195,11 @@ public class ReadingActivity extends AppCompatActivity {
                 });
             }
         }).start();
+    }
+    
+    // 重载方法，默认翻页时不保持滚动位置
+    private void loadPageContent(int pageIndex) {
+        loadPageContent(pageIndex, false);
     }
 
     private void updatePageButtons() {
