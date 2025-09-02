@@ -65,11 +65,13 @@
             android:padding="16dp"
             android:background="#FFFFFF">
 
-            <Button
+            <ImageButton
                 android:id="@+id/backButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="返回" />
+                android:src="@android:drawable/ic_menu_revert"
+                android:contentDescription="返回"
+                android:background="?android:attr/selectableItemBackgroundBorderless" />
 
         </LinearLayout>
 
@@ -90,11 +92,13 @@
             android:padding="16dp"
             android:background="#FFFFFF">
 
-            <Button
+            <ImageButton
                 android:id="@+id/tocButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="目录" />
+                android:src="@android:drawable/ic_menu_sort_by_size"
+                android:contentDescription="目录"
+                android:background="?android:attr/selectableItemBackgroundBorderless" />
 
         </LinearLayout>
 

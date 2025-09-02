@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -37,8 +38,10 @@ public class ReadingActivity extends AppCompatActivity {
     private ScrollView contentScrollView;
     private TextView contentTextView;
     private View menuLayer;
+    private ImageButton backButton;
     private Button previousPageButton;
     private Button nextPageButton;
+    private ImageButton tocButton; // 添加目录按钮变量
     private boolean isMenuVisible = false;
     private Book epubBook;
     private String bookTitle;
@@ -114,8 +117,11 @@ public class ReadingActivity extends AppCompatActivity {
         contentScrollView = findViewById(R.id.contentScrollView);
         contentTextView = findViewById(R.id.contentTextView);
         menuLayer = findViewById(R.id.menuLayer);
+        backButton = findViewById(R.id.backButton);
         previousPageButton = findViewById(R.id.previousPageButton);
         nextPageButton = findViewById(R.id.nextPageButton);
+        tocButton = findViewById(R.id.tocButton); // 初始化目录按钮
+        tocButton = findViewById(R.id.tocButton); // 初始化目录按钮
         
         // 初始化菜单层为隐藏状态
         menuLayer.setVisibility(View.GONE);
@@ -201,14 +207,14 @@ public class ReadingActivity extends AppCompatActivity {
         });
 
         // 返回按钮
-        findViewById(R.id.backButton).setOnClickListener(v -> {
+        backButton.setOnClickListener(v -> {
             Log.d(TAG, "backButton clicked");
             // 直接返回到书籍列表页面
             finish();
         });
 
         // 目录按钮
-        findViewById(R.id.tocButton).setOnClickListener(v -> {
+        tocButton.setOnClickListener(v -> { // 使用tocButton而不是findViewById
             Log.d(TAG, "tocButton clicked");
             openTableOfContents();
         });
