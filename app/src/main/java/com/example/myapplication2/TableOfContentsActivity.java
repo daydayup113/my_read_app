@@ -1,5 +1,7 @@
 package com.example.myapplication2;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ListView;
@@ -7,17 +9,21 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import nl.siegmann.epublib.domain.TOCReference;
 import nl.siegmann.epublib.domain.TableOfContents;
+import nl.siegmann.epublib.epub.EpubReader;
+import nl.siegmann.epublib.domain.Book;
 
 public class TableOfContentsActivity extends AppCompatActivity {
     private static final String TAG = "TOCActivity";
     private ListView tocListView;
     private TOCAdapter tocAdapter;
     private List<TOCReference> chapters;
+    private Book epubBook;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,26 +41,56 @@ public class TableOfContentsActivity extends AppCompatActivity {
         tocListView.setAdapter(tocAdapter);
 
         tocListView.setOnItemClickListener((parent, view, position, id) -> {
-            // 在实际应用中，这里应该跳转到指定章节
+            // 跳转到指定章节
             TOCReference chapter = chapters.get(position);
             String title = chapter.getTitle();
-            Toast.makeText(this, "跳转到章节: " + title, Toast.LENGTH_SHORT).show();
+            
+            // 获取章节的资源信息
+            Intent resultIntent = new Intent();
+            resultIntent.putExtra("chapter_position", position);
+            resultIntent.putExtra("chapter_title", title);
+            setResult(RESULT_OK, resultIntent);
             finish();
         });
     }
 
     private void loadTableOfContents() {
-        // 在实际应用中，这里应该从EPUB文件中加载真实的章节目录
-        // 由于这是一个演示，我们创建一些示例数据
-        try {
-            for (int i = 1; i <= 10; i++) {
-                // 创建模拟的TOCReference对象
-                chapters.add(new TOCReference("第 " + i + " 章 - 示例章节标题 " + i, null));
+        // 获取传递的书籍信息
+        Intent intent = getIntent();
+        String uriString = intent.getStringExtra("book_uri");
+        String bookTitle = intent.getStringExtra("book_title");
+        
+        if (uriString != null) {
+            try {
+                Uri bookUri = Uri.parse(uriString);
+                // 从URI加载EPUB书籍
+                try (InputStream epubInputStream = getContentResolver().openInputStream(bookUri)) {
+                    epubBook = new EpubReader().readEpub(epubInputStream);
+                }
+                
+                if (epubBook != null) {
+                    TableOfContents toc = epubBook.getTableOfContents();
+                    List<TOCReference> tocReferences = toc.getTocReferences();
+                    
+                    if (tocReferences != null && !tocReferences.isEmpty()) {
+                        chapters.addAll(tocReferences);
+                        tocAdapter.notifyDataSetChanged();
+                        Log.d(TAG, "成功加载 " + tocReferences.size() + " 个目录项");
+                    } else {
+                        Log.w(TAG, "书籍没有目录信息");
+                        Toast.makeText(this, "该书籍没有目录信息", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Log.e(TAG, "无法加载EPUB书籍");
+                    Toast.makeText(this, "无法加载EPUB书籍", Toast.LENGTH_LONG).show();
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "加载目录时出错", e);
+                Toast.makeText(this, "加载目录时出错: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
-            tocAdapter.notifyDataSetChanged();
-        } catch (Exception e) {
-            Log.e(TAG, "加载目录时出错", e);
-            Toast.makeText(this, "加载目录时出错: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        } else {
+            Log.e(TAG, "未接收到书籍URI");
+            Toast.makeText(this, "未接收到书籍信息", Toast.LENGTH_LONG).show();
         }
     }
 }
