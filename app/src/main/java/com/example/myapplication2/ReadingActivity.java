@@ -37,6 +37,9 @@ import nl.siegmann.epublib.epub.EpubReader;
 public class ReadingActivity extends AppCompatActivity {
     private static final String TAG = "ReadingActivity";
     private static final String PREFS_NAME = "ReadingProgress";
+    private static final String FONT_SIZE_PREF = "fontSize";
+    private static final String LINE_SPACING_PREF = "lineSpacing";
+    private static final String LETTER_SPACING_PREF = "letterSpacing";
     private static final int TABLE_OF_CONTENTS_REQUEST = 1;
     private ScrollView contentScrollView;
     private TextView contentTextView;
@@ -96,6 +99,10 @@ public class ReadingActivity extends AppCompatActivity {
 
         initViews();
         setupClickListeners();
+        
+        // 恢复用户的字体设置
+        restoreUserSettings();
+        
         loadBookContent();
         
         // 处理返回键事件
@@ -175,7 +182,40 @@ public class ReadingActivity extends AppCompatActivity {
             });
         }
     }
-
+    
+    // 恢复用户设置
+    private void restoreUserSettings() {
+        Log.d(TAG, "restoreUserSettings: Restoring user settings");
+        currentTextSize = sharedPreferences.getFloat(FONT_SIZE_PREF, 18f);
+        currentLineSpacing = sharedPreferences.getFloat(LINE_SPACING_PREF, 4f);
+        currentLetterSpacing = sharedPreferences.getFloat(LETTER_SPACING_PREF, 0f);
+        
+        // 应用设置到文本视图
+        contentTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, currentTextSize);
+        contentTextView.setLineSpacing(
+            TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, currentLineSpacing, getResources().getDisplayMetrics()), 
+            1f);
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            contentTextView.setLetterSpacing(currentLetterSpacing);
+        }
+        
+        Log.d(TAG, "restoreUserSettings: Font size=" + currentTextSize + 
+              ", Line spacing=" + currentLineSpacing + 
+              ", Letter spacing=" + currentLetterSpacing);
+    }
+    
+    // 保存用户设置
+    private void saveUserSettings() {
+        Log.d(TAG, "saveUserSettings: Saving user settings");
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putFloat(FONT_SIZE_PREF, currentTextSize);
+        editor.putFloat(LINE_SPACING_PREF, currentLineSpacing);
+        editor.putFloat(LETTER_SPACING_PREF, currentLetterSpacing);
+        editor.apply();
+        Log.d(TAG, "saveUserSettings: Settings saved");
+    }
+    
     private void setupClickListeners() {
         Log.d(TAG, "setupClickListeners: Setting up click listeners");
         
@@ -512,6 +552,7 @@ public class ReadingActivity extends AppCompatActivity {
         currentTextSize += 1f;
         contentTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, currentTextSize);
         updateFontSettingsDisplay();
+        saveUserSettings(); // 保存设置
         Log.d(TAG, "increaseFontSize: Text size increased to " + currentTextSize);
     }
     
@@ -519,7 +560,9 @@ public class ReadingActivity extends AppCompatActivity {
     private void decreaseFontSize() {
         if (currentTextSize > 8f) { // 限制最小字体大小
             currentTextSize -= 1f;
-            applyTextSize();
+            contentTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, currentTextSize);
+            updateFontSettingsDisplay();
+            saveUserSettings(); // 保存设置
             Log.d(TAG, "decreaseFontSize: Text size decreased to " + currentTextSize);
         }
     }
@@ -527,7 +570,9 @@ public class ReadingActivity extends AppCompatActivity {
     // 增大行距
     private void increaseLineSpacing() {
         currentLineSpacing += 1f;
-        applyLineSpacing();
+        contentTextView.setLineSpacing(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, currentLineSpacing, getResources().getDisplayMetrics()), 1f);
+        updateFontSettingsDisplay();
+        saveUserSettings(); // 保存设置
         Log.d(TAG, "increaseLineSpacing: Line spacing increased to " + currentLineSpacing);
     }
     
@@ -535,7 +580,9 @@ public class ReadingActivity extends AppCompatActivity {
     private void decreaseLineSpacing() {
         if (currentLineSpacing > 0f) { // 限制最小行距
             currentLineSpacing -= 1f;
-            applyLineSpacing();
+            contentTextView.setLineSpacing(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, currentLineSpacing, getResources().getDisplayMetrics()), 1f);
+            updateFontSettingsDisplay();
+            saveUserSettings(); // 保存设置
             Log.d(TAG, "decreaseLineSpacing: Line spacing decreased to " + currentLineSpacing);
         }
     }
@@ -543,7 +590,11 @@ public class ReadingActivity extends AppCompatActivity {
     // 增大字距
     private void increaseLetterSpacing() {
         currentLetterSpacing += 0.05f;
-        applyLetterSpacing();
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            contentTextView.setLetterSpacing(currentLetterSpacing);
+        }
+        updateFontSettingsDisplay();
+        saveUserSettings(); // 保存设置
         Log.d(TAG, "increaseLetterSpacing: Letter spacing increased to " + currentLetterSpacing);
     }
     
@@ -551,29 +602,13 @@ public class ReadingActivity extends AppCompatActivity {
     private void decreaseLetterSpacing() {
         if (currentLetterSpacing > -0.5f) { // 限制最小字距
             currentLetterSpacing -= 0.05f;
-            applyLetterSpacing();
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                contentTextView.setLetterSpacing(currentLetterSpacing);
+            }
+            updateFontSettingsDisplay();
+            saveUserSettings(); // 保存设置
             Log.d(TAG, "decreaseLetterSpacing: Letter spacing decreased to " + currentLetterSpacing);
         }
-    }
-    
-    // 应用字体大小到文本视图
-    private void applyTextSize() {
-        contentTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, currentTextSize);
-        updateFontSettingsDisplay();
-    }
-    
-    // 应用行距到文本视图
-    private void applyLineSpacing() {
-        contentTextView.setLineSpacing(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, currentLineSpacing, getResources().getDisplayMetrics()), 1f);
-        updateFontSettingsDisplay();
-    }
-    
-    // 应用字距到文本视图
-    private void applyLetterSpacing() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            contentTextView.setLetterSpacing(currentLetterSpacing);
-        }
-        updateFontSettingsDisplay();
     }
     
     // 设置字体设置层中按钮的点击事件
@@ -658,6 +693,8 @@ public class ReadingActivity extends AppCompatActivity {
         Log.d(TAG, "onPause: Saving current progress, currentPage=" + currentPage);
         // 在页面暂停时保存当前进度
         saveProgress(currentPage);
+        // 保存用户设置
+        saveUserSettings();
     }
     
     // 保存总章节数
