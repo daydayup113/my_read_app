@@ -8,6 +8,7 @@ public class EPUBBook {
     private String author;
     private int currentPage;
     private int totalPages;
+    private long lastReadTime; // 添加最后阅读时间字段
 
     public EPUBBook(Uri uri, String title) {
         this.uri = uri;
@@ -15,6 +16,7 @@ public class EPUBBook {
         this.author = "未知作者";
         this.currentPage = 0;
         this.totalPages = 0;
+        this.lastReadTime = 0; // 默认为0
     }
 
     public EPUBBook(Uri uri, String title, String author, int currentPage, int totalPages) {
@@ -23,6 +25,17 @@ public class EPUBBook {
         this.author = author;
         this.currentPage = currentPage;
         this.totalPages = totalPages;
+        this.lastReadTime = 0; // 默认为0
+    }
+
+    // 新增构造函数，包含最后阅读时间
+    public EPUBBook(Uri uri, String title, String author, int currentPage, int totalPages, long lastReadTime) {
+        this.uri = uri;
+        this.title = title;
+        this.author = author;
+        this.currentPage = currentPage;
+        this.totalPages = totalPages;
+        this.lastReadTime = lastReadTime;
     }
 
     public Uri getUri() {
@@ -55,5 +68,14 @@ public class EPUBBook {
 
     public void setTotalPages(int totalPages) {
         this.totalPages = totalPages;
+    }
+    
+    // 添加最后阅读时间的getter和setter方法
+    public long getLastReadTime() {
+        return lastReadTime;
+    }
+    
+    public void setLastReadTime(long lastReadTime) {
+        this.lastReadTime = lastReadTime;
     }
 }

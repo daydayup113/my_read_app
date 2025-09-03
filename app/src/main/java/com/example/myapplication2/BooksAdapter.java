@@ -10,7 +10,10 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class BooksAdapter extends RecyclerView.Adapter<BooksAdapter.BookViewHolder> {
     private List<EPUBBook> books;
@@ -51,6 +54,7 @@ public class BooksAdapter extends RecyclerView.Adapter<BooksAdapter.BookViewHold
         private TextView bookTitle;
         private TextView bookAuthor;
         private TextView bookProgress;
+        private TextView lastReadTime; // 添加最后阅读时间显示
 
         public BookViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -58,6 +62,7 @@ public class BooksAdapter extends RecyclerView.Adapter<BooksAdapter.BookViewHold
             bookTitle = itemView.findViewById(R.id.bookTitle);
             bookAuthor = itemView.findViewById(R.id.bookAuthor);
             bookProgress = itemView.findViewById(R.id.bookProgress);
+            lastReadTime = itemView.findViewById(R.id.lastReadTime); // 初始化最后阅读时间显示
         }
 
         public void bind(EPUBBook book, int position) {
@@ -70,6 +75,16 @@ public class BooksAdapter extends RecyclerView.Adapter<BooksAdapter.BookViewHold
                 bookProgress.setText(progressText);
             } else {
                 bookProgress.setText("阅读进度: 暂无");
+            }
+            
+            // 设置最后阅读时间显示
+            if (book.getLastReadTime() > 0) {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+                String timeText = "最后阅读: " + sdf.format(new Date(book.getLastReadTime()));
+                lastReadTime.setText(timeText);
+                lastReadTime.setVisibility(View.VISIBLE);
+            } else {
+                lastReadTime.setVisibility(View.GONE);
             }
             
             // 设置封面图标（暂时使用占位符）

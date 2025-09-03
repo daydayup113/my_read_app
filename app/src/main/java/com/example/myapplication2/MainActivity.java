@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
+import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -29,6 +30,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -233,6 +236,12 @@ public class MainActivity extends AppCompatActivity {
     private void openBook(EPUBBook book) {
         // 检查本地文件是否仍然存在
         if (isLocalFileValid(book.getUri())) {
+            // 更新书籍的最后阅读时间
+            book.setLastReadTime(System.currentTimeMillis());
+            // 重新排序并刷新列表
+            sortBooksByLastReadTime();
+            saveBooks(); // 保存更新后的书籍列表
+            
             Intent intent = new Intent(this, ReadingActivity.class);
             intent.putExtra("book_uri", book.getUri().toString());
             intent.putExtra("book_title", book.getTitle());
@@ -281,7 +290,7 @@ public class MainActivity extends AppCompatActivity {
         
         for (int i = 0; i < epubBooks.size(); i++) {
             EPUBBook book = epubBooks.get(i);
-            // 格式：uri|title|author|currentPage|totalPages
+            // 格式：uri|title|author|currentPage|totalPages|lastReadTime
             bookListString.append(book.getUri().toString())
                     .append("|")
                     .append(book.getTitle())
@@ -290,7 +299,9 @@ public class MainActivity extends AppCompatActivity {
                     .append("|")
                     .append(book.getCurrentPage())
                     .append("|")
-                    .append(book.getTotalPages());
+                    .append(book.getTotalPages())
+                    .append("|")
+                    .append(book.getLastReadTime()); // 添加最后阅读时间
             
             //如果不是最后一个元素，添加分隔符
             if (i < epubBooks.size() - 1) {
@@ -317,14 +328,20 @@ public class MainActivity extends AppCompatActivity {
                     String author = parts[2];
                     int currentPage = 0;
                     int totalPages = 0;
+                    long lastReadTime = 0; // 默认最后阅读时间为0
                     
                     try {
                         currentPage = Integer.parseInt(parts[3]);
                         totalPages = Integer.parseInt(parts[4]);
+                        // 如果有第6个部分，则解析最后阅读时间
+                        if (parts.length >= 6) {
+                            lastReadTime = Long.parseLong(parts[5]);
+                        }
                     } catch (NumberFormatException e) {
                         // 如果解析失败，使用默认值
                         currentPage = 0;
                         totalPages = 0;
+                        lastReadTime = 0;
                     }
                     
                     // 检查本地文件是否仍然存在
@@ -332,13 +349,16 @@ public class MainActivity extends AppCompatActivity {
                         // 更新当前页和总页数
                         currentPage = getBookCurrentPage(uri);
                         totalPages = getBookTotalChapters(uri);
-                        epubBooks.add(new EPUBBook(uri, title, author, currentPage, totalPages));
+                        epubBooks.add(new EPUBBook(uri, title, author, currentPage, totalPages, lastReadTime));
                     } else {
                         // 删除不存在的文件对应的条目
                         removeInvalidBookEntry(uri);
                     }
                 }
             }
+            
+            // 按最后阅读时间排序
+            sortBooksByLastReadTime();
             
             booksAdapter.notifyDataSetChanged();
         }
@@ -415,5 +435,18 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("取消", null)
                 .show();
+    }
+    
+    // 按最后阅读时间排序书籍列表
+    private void sortBooksByLastReadTime() {
+        // 使用Collections.sort以确保兼容API 21
+        Collections.sort(epubBooks, new Comparator<EPUBBook>() {
+            @Override
+            public int compare(EPUBBook book1, EPUBBook book2) {
+                // 按最后阅读时间降序排列（最近阅读的在前）
+                return Long.compare(book2.getLastReadTime(), book1.getLastReadTime());
+            }
+        });
+        booksAdapter.notifyDataSetChanged();
     }
 }
