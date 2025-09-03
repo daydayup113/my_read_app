@@ -118,8 +118,7 @@
     <FrameLayout
         android:id="@+id/fontSettingsLayer"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_gravity="bottom"
+        android:layout_height="match_parent"
         android:visibility="gone">
 
         <include layout="@layout/font_settings_layout" />

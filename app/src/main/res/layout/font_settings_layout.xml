@@ -2,21 +2,25 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#FFFFFF">
+    android:orientation="vertical">
 
-    <!-- 中间区域（点击隐藏字体设置层） -->
+    <!-- 上方三分之二区域，半透明遮罩，点击隐藏字体设置层 -->
     <View
-        android:id="@+id/fontSettingsCenterArea"
+        android:id="@+id/fontSettingsOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:background="#80000000"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- 下方三分之一区域，字体设置功能区域 -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="@android:color/transparent" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:orientation="vertical"
+        android:background="#FFFFFF"
         android:padding="16dp">
 
         <TextView
