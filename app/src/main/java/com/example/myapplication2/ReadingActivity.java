@@ -2,6 +2,7 @@ package com.example.myapplication2;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Html;
@@ -40,6 +41,7 @@ public class ReadingActivity extends AppCompatActivity {
     private static final String FONT_SIZE_PREF = "fontSize";
     private static final String LINE_SPACING_PREF = "lineSpacing";
     private static final String LETTER_SPACING_PREF = "letterSpacing";
+    private static final String BACKGROUND_COLOR_PREF = "backgroundColor"; // 添加背景色偏好键
     private static final int TABLE_OF_CONTENTS_REQUEST = 1;
     private ScrollView contentScrollView;
     private TextView contentTextView;
@@ -49,7 +51,8 @@ public class ReadingActivity extends AppCompatActivity {
     private Button previousPageButton;
     private Button nextPageButton;
     private ImageButton tocButton;
-    private ImageButton settingsButton; // 添加设置按钮变量
+    private ImageButton settingsButton;
+    private ImageButton backgroundButton; // 添加背景色按钮变量
     private boolean isMenuVisible = false;
     private Book epubBook;
     private String bookTitle;
@@ -62,6 +65,7 @@ public class ReadingActivity extends AppCompatActivity {
     private float currentTextSize = 18f; // 默认字体大小
     private float currentLineSpacing = 4f; // 默认行距
     private float currentLetterSpacing = 0f; // 默认字距
+    private int currentBackgroundColor = 0xFFADD8E6; // 默认背景色 (浅蓝色)
     
     // 字体设置层中的控件
     private Button btnFontSizeDecrease;
@@ -100,8 +104,9 @@ public class ReadingActivity extends AppCompatActivity {
         initViews();
         setupClickListeners();
         
-        // 恢复用户的字体设置
+        // 恢复用户的字体设置和背景色
         restoreUserSettings();
+        restoreBackgroundColor();
         
         loadBookContent();
         
@@ -152,7 +157,8 @@ public class ReadingActivity extends AppCompatActivity {
         previousPageButton = findViewById(R.id.previousPageButton);
         nextPageButton = findViewById(R.id.nextPageButton);
         tocButton = findViewById(R.id.tocButton);
-        settingsButton = findViewById(R.id.settingsButton); // 初始化设置按钮
+        settingsButton = findViewById(R.id.settingsButton);
+        backgroundButton = findViewById(R.id.backgroundButton); // 初始化背景色按钮
         
         // 初始化字体设置层中的控件
         if (fontSettingsLayer != null) {
@@ -189,6 +195,7 @@ public class ReadingActivity extends AppCompatActivity {
         currentTextSize = sharedPreferences.getFloat(FONT_SIZE_PREF, 18f);
         currentLineSpacing = sharedPreferences.getFloat(LINE_SPACING_PREF, 4f);
         currentLetterSpacing = sharedPreferences.getFloat(LETTER_SPACING_PREF, 0f);
+        currentBackgroundColor = sharedPreferences.getInt(BACKGROUND_COLOR_PREF, 0xFFADD8E6);
         
         // 应用设置到文本视图
         contentTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, currentTextSize);
@@ -200,9 +207,13 @@ public class ReadingActivity extends AppCompatActivity {
             contentTextView.setLetterSpacing(currentLetterSpacing);
         }
         
+        // 应用背景色
+        contentScrollView.setBackgroundColor(currentBackgroundColor);
+        
         Log.d(TAG, "restoreUserSettings: Font size=" + currentTextSize + 
               ", Line spacing=" + currentLineSpacing + 
-              ", Letter spacing=" + currentLetterSpacing);
+              ", Letter spacing=" + currentLetterSpacing +
+              ", Background color=" + Integer.toHexString(currentBackgroundColor));
     }
     
     // 保存用户设置
@@ -212,6 +223,7 @@ public class ReadingActivity extends AppCompatActivity {
         editor.putFloat(FONT_SIZE_PREF, currentTextSize);
         editor.putFloat(LINE_SPACING_PREF, currentLineSpacing);
         editor.putFloat(LETTER_SPACING_PREF, currentLetterSpacing);
+        editor.putInt(BACKGROUND_COLOR_PREF, currentBackgroundColor);
         editor.apply();
         Log.d(TAG, "saveUserSettings: Settings saved");
     }
@@ -313,6 +325,12 @@ public class ReadingActivity extends AppCompatActivity {
             Log.d(TAG, "settingsButton clicked");
             // 显示字体设置层
             showFontSettingsLayer();
+        });
+        
+        // 背景色按钮
+        backgroundButton.setOnClickListener(v -> {
+            Log.d(TAG, "backgroundButton clicked");
+            showBackgroundColorDialog();
         });
         
         // 字体设置层中的按钮点击事件
@@ -716,5 +734,51 @@ public class ReadingActivity extends AppCompatActivity {
         }
         Log.d(TAG, "getTotalChapters: bookUri is null, returning 0");
         return 0;
+    }
+    
+    // 显示背景色选择对话框
+    private void showBackgroundColorDialog() {
+        Log.d(TAG, "showBackgroundColorDialog: Showing background color dialog");
+        // 隐藏菜单层
+        hideMenu();
+        
+        // 使用颜色选择器
+        ColorPickerDialog colorPickerDialog = new ColorPickerDialog(this, currentBackgroundColor);
+        colorPickerDialog.setOnColorSelectedListener(new ColorPickerDialog.OnColorSelectedListener() {
+            @Override
+            public void onColorSelected(int color) {
+                // 更新背景色
+                currentBackgroundColor = color;
+                updateBackgroundColor();
+                // 保存背景色设置
+                saveBackgroundColor();
+                Log.d(TAG, "Background color changed to: #" + Integer.toHexString(color));
+            }
+        });
+        colorPickerDialog.show();
+    }
+    
+    // 更新背景色
+    private void updateBackgroundColor() {
+        Log.d(TAG, "updateBackgroundColor: Updating background color to " + String.format("#%06X", (0xFFFFFF & currentBackgroundColor)));
+        contentScrollView.setBackgroundColor(currentBackgroundColor);
+        contentTextView.setBackgroundColor(currentBackgroundColor);
+    }
+    
+    // 保存背景色设置
+    private void saveBackgroundColor() {
+        Log.d(TAG, "saveBackgroundColor: Saving background color");
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putInt(BACKGROUND_COLOR_PREF, currentBackgroundColor);
+        editor.apply();
+        Log.d(TAG, "saveBackgroundColor: Background color saved");
+    }
+    
+    // 恢复背景色设置
+    private void restoreBackgroundColor() {
+        Log.d(TAG, "restoreBackgroundColor: Restoring background color");
+        currentBackgroundColor = sharedPreferences.getInt(BACKGROUND_COLOR_PREF, 0xFFADD8E6); // 默认为浅蓝色
+        updateBackgroundColor();
+        Log.d(TAG, "restoreBackgroundColor: Background color restored to " + String.format("#%06X", (0xFFFFFF & currentBackgroundColor)));
     }
 }
