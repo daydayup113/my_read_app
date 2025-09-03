@@ -6,8 +6,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ScrollView;
@@ -39,6 +41,7 @@ public class ReadingActivity extends AppCompatActivity {
     private ScrollView contentScrollView;
     private TextView contentTextView;
     private View menuLayer;
+    private View fontSettingsLayer;
     private ImageButton backButton;
     private Button previousPageButton;
     private Button nextPageButton;
@@ -51,6 +54,22 @@ public class ReadingActivity extends AppCompatActivity {
     private int currentPage = 0;
     private List<SpineReference> spineReferences;
     private SharedPreferences sharedPreferences;
+    
+    // 字体设置相关变量
+    private float currentTextSize = 18f; // 默认字体大小
+    private float currentLineSpacing = 4f; // 默认行距
+    private float currentLetterSpacing = 0f; // 默认字距
+    
+    // 字体设置层中的控件
+    private Button btnFontSizeDecrease;
+    private Button btnFontSizeIncrease;
+    private Button btnLineSpacingDecrease;
+    private Button btnLineSpacingIncrease;
+    private Button btnLetterSpacingDecrease;
+    private Button btnLetterSpacingIncrease;
+    private TextView tvFontSize;
+    private TextView tvLineSpacing;
+    private TextView tvLetterSpacing;
     
     // 添加ActivityResultLauncher来处理目录页面的返回结果
     private ActivityResultLauncher<Intent> tocActivityResultLauncher;
@@ -86,6 +105,8 @@ public class ReadingActivity extends AppCompatActivity {
                 Log.d(TAG, "handleOnBackPressed: isMenuVisible=" + isMenuVisible);
                 if (isMenuVisible) {
                     hideMenu();
+                } else if (fontSettingsLayer.getVisibility() == View.VISIBLE) {
+                    hideFontSettingsLayer();
                 } else {
                     finish();
                 }
@@ -119,15 +140,35 @@ public class ReadingActivity extends AppCompatActivity {
         contentScrollView = findViewById(R.id.contentScrollView);
         contentTextView = findViewById(R.id.contentTextView);
         menuLayer = findViewById(R.id.menuLayer);
+        fontSettingsLayer = findViewById(R.id.fontSettingsLayer);
         backButton = findViewById(R.id.backButton);
         previousPageButton = findViewById(R.id.previousPageButton);
         nextPageButton = findViewById(R.id.nextPageButton);
         tocButton = findViewById(R.id.tocButton);
         settingsButton = findViewById(R.id.settingsButton); // 初始化设置按钮
         
+        // 初始化字体设置层中的控件
+        btnFontSizeDecrease = fontSettingsLayer.findViewById(R.id.btn_font_size_decrease);
+        btnFontSizeIncrease = fontSettingsLayer.findViewById(R.id.btn_font_size_increase);
+        btnLineSpacingDecrease = fontSettingsLayer.findViewById(R.id.btn_line_spacing_decrease);
+        btnLineSpacingIncrease = fontSettingsLayer.findViewById(R.id.btn_line_spacing_increase);
+        btnLetterSpacingDecrease = fontSettingsLayer.findViewById(R.id.btn_letter_spacing_decrease);
+        btnLetterSpacingIncrease = fontSettingsLayer.findViewById(R.id.btn_letter_spacing_increase);
+        tvFontSize = fontSettingsLayer.findViewById(R.id.tv_font_size);
+        tvLineSpacing = fontSettingsLayer.findViewById(R.id.tv_line_spacing);
+        tvLetterSpacing = fontSettingsLayer.findViewById(R.id.tv_letter_spacing);
+        
         // 初始化菜单层为隐藏状态
         menuLayer.setVisibility(View.GONE);
         isMenuVisible = false;
+        
+        // 初始化字体设置层为隐藏状态
+        fontSettingsLayer.setVisibility(View.GONE);
+        
+        // 设置字体设置层高度为屏幕的三分之一
+        ViewGroup.LayoutParams params = fontSettingsLayer.getLayoutParams();
+        params.height = getResources().getDisplayMetrics().heightPixels / 3;
+        fontSettingsLayer.setLayoutParams(params);
         
         // 设置滚动监听，用于检测是否需要加载更多内容
         // 注意：setOnScrollChangeListener需要API 23及以上
@@ -207,6 +248,15 @@ public class ReadingActivity extends AppCompatActivity {
             Log.d(TAG, "menuCenterArea clicked: hiding menu");
             hideMenu();
         });
+        
+        // 点击字体设置层中间区域隐藏字体设置层
+        View fontSettingsCenterArea = fontSettingsLayer.findViewById(R.id.fontSettingsCenterArea);
+        if (fontSettingsCenterArea != null) {
+            fontSettingsCenterArea.setOnClickListener(v -> {
+                Log.d(TAG, "fontSettingsCenterArea clicked: hiding font settings layer");
+                hideFontSettingsLayer();
+            });
+        }
 
         // 返回按钮
         backButton.setOnClickListener(v -> {
@@ -224,8 +274,33 @@ public class ReadingActivity extends AppCompatActivity {
         // 设置按钮
         settingsButton.setOnClickListener(v -> {
             Log.d(TAG, "settingsButton clicked");
-            // 显示简单的设置选项（可以扩展为更复杂的设置功能）
-            showSettingsOptions();
+            // 显示字体设置层
+            showFontSettingsLayer();
+        });
+        
+        // 字体设置层中的按钮点击事件
+        btnFontSizeDecrease.setOnClickListener(v -> {
+            decreaseFontSize();
+        });
+        
+        btnFontSizeIncrease.setOnClickListener(v -> {
+            increaseFontSize();
+        });
+        
+        btnLineSpacingDecrease.setOnClickListener(v -> {
+            decreaseLineSpacing();
+        });
+        
+        btnLineSpacingIncrease.setOnClickListener(v -> {
+            increaseLineSpacing();
+        });
+        
+        btnLetterSpacingDecrease.setOnClickListener(v -> {
+            decreaseLetterSpacing();
+        });
+        
+        btnLetterSpacingIncrease.setOnClickListener(v -> {
+            increaseLetterSpacing();
         });
         
         // 翻页按钮
@@ -409,32 +484,88 @@ public class ReadingActivity extends AppCompatActivity {
         }
     }
     
-    // 显示设置选项
-    private void showSettingsOptions() {
-        Log.d(TAG, "showSettingsOptions: Showing settings options");
-        // 创建字体大小调整对话框
-        showFontSizeDialog();
+    // 显示字体设置层
+    private void showFontSettingsLayer() {
+        Log.d(TAG, "showFontSettingsLayer: Showing font settings layer");
         // 隐藏菜单层
         hideMenu();
+        
+        // 显示字体设置层
+        fontSettingsLayer.setVisibility(View.VISIBLE);
+        
+        // 更新显示的当前设置值
+        updateFontSettingsDisplay();
     }
     
-    // 显示字体大小调整对话框
-    private void showFontSizeDialog() {
-        // 定义字体大小选项
-        String[] fontSizeOptions = {"小", "中", "大", "超大"};
-        float[] fontSizes = {14f, 18f, 22f, 26f};
-        
-        // 创建对话框
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("选择字体大小");
-        builder.setItems(fontSizeOptions, (dialog, which) -> {
-            // 根据选择调整字体大小
-            float selectedSize = fontSizes[which];
-            contentTextView.setTextSize(selectedSize);
-            Log.d(TAG, "Font size changed to: " + selectedSize);
-        });
-        builder.setNegativeButton("取消", null);
-        builder.create().show();
+    // 隐藏字体设置层
+    private void hideFontSettingsLayer() {
+        Log.d(TAG, "hideFontSettingsLayer: Hiding font settings layer");
+        fontSettingsLayer.setVisibility(View.GONE);
+    }
+    
+    // 更新字体设置显示
+    private void updateFontSettingsDisplay() {
+        tvFontSize.setText("字号: " + currentTextSize);
+        tvLineSpacing.setText("行距: " + currentLineSpacing + "dp");
+        tvLetterSpacing.setText("字距: " + currentLetterSpacing);
+    }
+    
+    // 增大字体
+    private void increaseFontSize() {
+        currentTextSize += 1f;
+        contentTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, currentTextSize);
+        updateFontSettingsDisplay();
+        Log.d(TAG, "increaseFontSize: Text size increased to " + currentTextSize);
+    }
+    
+    // 减小字体
+    private void decreaseFontSize() {
+        if (currentTextSize > 8f) { // 限制最小字体大小
+            currentTextSize -= 1f;
+            contentTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, currentTextSize);
+            updateFontSettingsDisplay();
+            Log.d(TAG, "decreaseFontSize: Text size decreased to " + currentTextSize);
+        }
+    }
+    
+    // 增大行距
+    private void increaseLineSpacing() {
+        currentLineSpacing += 1f;
+        contentTextView.setLineSpacing(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, currentLineSpacing, getResources().getDisplayMetrics()), 1f);
+        updateFontSettingsDisplay();
+        Log.d(TAG, "increaseLineSpacing: Line spacing increased to " + currentLineSpacing);
+    }
+    
+    // 减小行距
+    private void decreaseLineSpacing() {
+        if (currentLineSpacing > 0f) { // 限制最小行距
+            currentLineSpacing -= 1f;
+            contentTextView.setLineSpacing(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, currentLineSpacing, getResources().getDisplayMetrics()), 1f);
+            updateFontSettingsDisplay();
+            Log.d(TAG, "decreaseLineSpacing: Line spacing decreased to " + currentLineSpacing);
+        }
+    }
+    
+    // 增大字距
+    private void increaseLetterSpacing() {
+        currentLetterSpacing += 0.05f;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            contentTextView.setLetterSpacing(currentLetterSpacing);
+        }
+        updateFontSettingsDisplay();
+        Log.d(TAG, "increaseLetterSpacing: Letter spacing increased to " + currentLetterSpacing);
+    }
+    
+    // 减小字距
+    private void decreaseLetterSpacing() {
+        if (currentLetterSpacing > -0.5f) { // 限制最小字距
+            currentLetterSpacing -= 0.05f;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                contentTextView.setLetterSpacing(currentLetterSpacing);
+            }
+            updateFontSettingsDisplay();
+            Log.d(TAG, "decreaseLetterSpacing: Letter spacing decreased to " + currentLetterSpacing);
+        }
     }
     
     // 添加翻页方法

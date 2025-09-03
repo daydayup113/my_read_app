@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFFFFF">
+
+    <!-- 中间区域（点击隐藏字体设置层） -->
+    <View
+        android:id="@+id/fontSettingsCenterArea"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@android:color/transparent" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="字体设置"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 字体大小和行距设置并排显示 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <!-- 字体大小设置 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <Button
+                    android:id="@+id/btn_font_size_decrease"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:maxWidth="48dp"
+                    android:text="A-"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginEnd="4dp" />
+
+                <TextView
+                    android:id="@+id/tv_font_size"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:text="字号: 18"
+                    android:textSize="14sp"
+                    android:gravity="center" />
+
+                <Button
+                    android:id="@+id/btn_font_size_increase"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:maxWidth="48dp"
+                    android:text="A+"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginStart="4dp" />
+            </LinearLayout>
+
+            <!-- 行距设置 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <Button
+                    android:id="@+id/btn_line_spacing_decrease"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:maxWidth="48dp"
+                    android:text="--"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginEnd="4dp" />
+
+                <TextView
+                    android:id="@+id/tv_line_spacing"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:text="行距: 4dp"
+                    android:textSize="14sp"
+                    android:gravity="center" />
+
+                <Button
+                    android:id="@+id/btn_line_spacing_increase"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:maxWidth="48dp"
+                    android:text="++"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginStart="4dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 字距设置放在下方左侧 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/btn_letter_spacing_decrease"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxWidth="48dp"
+                android:text="--"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="4dp" />
+
+            <TextView
+                android:id="@+id/tv_letter_spacing"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="字距: 0"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/btn_letter_spacing_increase"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxWidth="48dp"
+                android:text="++"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>
