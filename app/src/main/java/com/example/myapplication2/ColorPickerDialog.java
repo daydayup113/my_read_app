@@ -8,12 +8,16 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.TextView;
 
 public class ColorPickerDialog extends Dialog {
     private OnColorSelectedListener listener;
     private int selectedColor;
     private View colorPreview;
+    private TextView colorHexText;
     private ColorPickerView colorPickerView;
+    private Button confirmButton;
+    private Button cancelButton;
 
     public ColorPickerDialog(Context context, int initialColor) {
         super(context);
@@ -46,6 +50,13 @@ public class ColorPickerDialog extends Dialog {
     private void initViews() {
         colorPickerView = findViewById(R.id.colorPickerView);
         colorPreview = findViewById(R.id.colorPreview);
+        colorHexText = findViewById(R.id.colorHexText);
+        confirmButton = findViewById(R.id.confirmButton);
+        cancelButton = findViewById(R.id.cancelButton);
+
+        // 设置按钮样式
+        confirmButton.setBackgroundResource(R.drawable.button_background);
+        cancelButton.setBackgroundResource(R.drawable.button_background);
 
         colorPickerView.setOnColorSelectedListener(new ColorPickerView.OnColorSelectedListener() {
             @Override
@@ -57,7 +68,7 @@ public class ColorPickerDialog extends Dialog {
     }
 
     private void setupListeners() {
-        findViewById(R.id.confirmButton).setOnClickListener(new View.OnClickListener() {
+        confirmButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (listener != null) {
@@ -67,7 +78,7 @@ public class ColorPickerDialog extends Dialog {
             }
         });
 
-        findViewById(R.id.cancelButton).setOnClickListener(new View.OnClickListener() {
+        cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 dismiss();
@@ -77,6 +88,19 @@ public class ColorPickerDialog extends Dialog {
 
     private void updateColorPreview() {
         colorPreview.setBackgroundColor(selectedColor);
+        
+        // 更新颜色十六进制码显示
+        String hexColor = String.format("#%06X", (0xFFFFFF & selectedColor));
+        colorHexText.setText(hexColor);
+        
+        // 根据背景色调整预览文字颜色，确保可读性
+        int grayValue = (int) (0.299 * Color.red(selectedColor) + 
+                              0.587 * Color.green(selectedColor) + 
+                              0.114 * Color.blue(selectedColor));
+        
+        // 如果背景较暗，使用白色文字；否则使用黑色文字
+        int textColor = grayValue < 128 ? Color.WHITE : Color.BLACK;
+        colorHexText.setTextColor(textColor);
     }
 
     public void setOnColorSelectedListener(OnColorSelectedListener listener) {

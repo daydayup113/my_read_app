@@ -14,15 +14,16 @@ import androidx.annotation.Nullable;
 
 public class ColorPickerView extends View {
     private Paint paint;
-    private Paint centerPaint;
     private Paint touchPaint;
+    private Paint textPaint; // 添加文本画笔
     private int[] colors;
     private boolean isTracking = false;
     private OnColorSelectedListener listener;
     private float centerX, centerY;
     private float radius;
     private float touchX, touchY;
-    private float strokeWidth = 50f;
+    private int selectedColor = Color.RED;
+    private String hexColor = "#FF0000"; // 添加十六进制颜色字符串
 
     public ColorPickerView(Context context) {
         super(context);
@@ -46,21 +47,21 @@ public class ColorPickerView extends View {
                 Color.GREEN, Color.YELLOW, Color.RED
         };
 
-        // 绘制色环的画笔
+        // 绘制圆盘的画笔
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(strokeWidth);
-
-        // 绘制中心颜色的画笔
-        centerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        centerPaint.setStyle(Paint.Style.FILL);
-        centerPaint.setColor(Color.RED);
+        paint.setStyle(Paint.Style.FILL);
 
         // 绘制触摸指示器的画笔
         touchPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         touchPaint.setStyle(Paint.Style.STROKE);
-        touchPaint.setStrokeWidth(5f);
+        touchPaint.setStrokeWidth(8f);
         touchPaint.setColor(Color.WHITE);
+        
+        // 绘制文本的画笔
+        textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setTextSize(32f);
+        textPaint.setColor(Color.WHITE);
+        textPaint.setShadowLayer(4f, 2f, 2f, Color.BLACK); // 添加阴影使文字更清晰
     }
 
     @Override
@@ -69,33 +70,46 @@ public class ColorPickerView extends View {
         // 计算中心点和半径
         centerX = w / 2f;
         centerY = h / 2f;
-        // 确保色环不会超出视图边界，留出适当边距
-        radius = Math.min(w, h) / 2f - strokeWidth;
-        
-        // 确保半径为正数
-        if (radius < 0) {
-            radius = strokeWidth;
-        }
+        radius = Math.min(w, h) / 2f;
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        // 创建色环渐变
+        // 创建圆盘渐变
         Shader shader = new SweepGradient(centerX, centerY, colors, null);
         paint.setShader(shader);
 
-        // 绘制色环
+        // 绘制圆盘
         canvas.drawCircle(centerX, centerY, radius, paint);
 
-        // 绘制中心颜色区域
-        canvas.drawCircle(centerX, centerY, radius / 3f, centerPaint);
+        // 绘制中心白色圆圈
+        Paint centerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        centerPaint.setStyle(Paint.Style.FILL);
+        centerPaint.setColor(selectedColor);
+        canvas.drawCircle(centerX, centerY, radius / 8f, centerPaint);
 
         // 绘制触摸指示器
         if (touchX > 0 && touchY > 0) {
-            canvas.drawCircle(touchX, touchY, 20f, touchPaint);
+            // 绘制外圈指示器
+            canvas.drawCircle(touchX, touchY, 25f, touchPaint);
+            
+            // 绘制内圈指示器
+            Paint innerTouchPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            innerTouchPaint.setStyle(Paint.Style.STROKE);
+            innerTouchPaint.setStrokeWidth(4f);
+            innerTouchPaint.setColor(Color.BLACK);
+            canvas.drawCircle(touchX, touchY, 15f, innerTouchPaint);
         }
+        
+        // 在圆盘左下角绘制颜色十六进制码
+        Paint.FontMetrics fontMetrics = textPaint.getFontMetrics();
+        float textHeight = fontMetrics.descent - fontMetrics.ascent;
+        // 计算文本位置（左下角）
+        float textX = 20f; // 左边距
+        float textY = getHeight() - 20f; // 下边距
+        canvas.drawText(hexColor, textX, textY, textPaint);
     }
 
     @Override
@@ -103,20 +117,28 @@ public class ColorPickerView extends View {
         float x = event.getX();
         float y = event.getY();
 
+        // 检查触摸点是否在圆盘内
+        float dx = x - centerX;
+        float dy = y - centerY;
+        float distance = (float) Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > radius) {
+            return super.onTouchEvent(event);
+        }
+
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                if (isInColorWheel(x, y)) {
-                    isTracking = true;
-                    updateColor(x, y);
-                    return true;
-                }
-                break;
+                isTracking = true;
+                updateColor(x, y);
+                return true;
+                
             case MotionEvent.ACTION_MOVE:
                 if (isTracking) {
                     updateColor(x, y);
                     return true;
                 }
                 break;
+                
             case MotionEvent.ACTION_UP:
                 if (isTracking) {
                     isTracking = false;
@@ -127,15 +149,6 @@ public class ColorPickerView extends View {
         }
 
         return super.onTouchEvent(event);
-    }
-
-    private boolean isInColorWheel(float x, float y) {
-        // 判断触摸点是否在色环内
-        float dx = x - centerX;
-        float dy = y - centerY;
-        float distance = (float) Math.sqrt(dx * dx + dy * dy);
-        // 考虑笔触宽度，扩大检测范围
-        return distance <= radius + strokeWidth/2 && distance >= radius - strokeWidth/2;
     }
 
     private void updateColor(float x, float y) {
@@ -151,8 +164,10 @@ public class ColorPickerView extends View {
         }
         
         // 根据角度计算颜色
-        int color = getColorAtAngle(degrees);
-        centerPaint.setColor(color);
+        selectedColor = getColorAtAngle(degrees);
+        
+        // 更新十六进制颜色字符串
+        hexColor = String.format("#%06X", (0xFFFFFF & selectedColor));
         
         // 更新触摸点位置
         touchX = x;
@@ -160,7 +175,7 @@ public class ColorPickerView extends View {
         
         // 通知颜色选择监听器
         if (listener != null) {
-            listener.onColorSelected(color);
+            listener.onColorSelected(selectedColor);
         }
         
         // 重绘视图
