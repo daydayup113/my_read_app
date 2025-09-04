@@ -10,6 +10,10 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.ScaleAnimation;
 import android.view.animation.TranslateAnimation;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -22,6 +26,8 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.InputStream;
 import java.util.List;
@@ -38,6 +44,9 @@ public class ReadingActivity extends AppCompatActivity {
     // 添加动画持续时间常量
     private static final int ANIMATION_DURATION = 300;
     
+    // 添加翻页按钮动画常量
+    private static final int BUTTON_ANIMATION_DURATION = 200;
+    
     private static final String PREFS_NAME = "ReadingProgress";
     private static final String FONT_SIZE_PREF = "fontSize";
     private static final String LINE_SPACING_PREF = "lineSpacing";
@@ -48,8 +57,8 @@ public class ReadingActivity extends AppCompatActivity {
     private View menuLayer;
     private View fontSettingsLayer;
     private ImageButton backButton;
-    private Button previousPageButton;
-    private Button nextPageButton;
+    private ImageButton previousPageButton;
+    private ImageButton nextPageButton;
     private ImageButton tocButton;
     private ImageButton settingsButton;
     private ImageButton backgroundButton; // 添加背景色按钮变量
@@ -162,8 +171,8 @@ public class ReadingActivity extends AppCompatActivity {
         menuLayer = findViewById(R.id.menuLayer);
         fontSettingsLayer = findViewById(R.id.fontSettingsLayer);
         backButton = findViewById(R.id.backButton);
-        previousPageButton = findViewById(R.id.previousPageButton);
-        nextPageButton = findViewById(R.id.nextPageButton);
+        previousPageButton = (ImageButton) findViewById(R.id.previousPageButton);
+        nextPageButton = (ImageButton) findViewById(R.id.nextPageButton);
         tocButton = findViewById(R.id.tocButton);
         settingsButton = findViewById(R.id.settingsButton);
         backgroundButton = findViewById(R.id.backgroundButton); // 初始化背景色按钮
@@ -503,15 +512,102 @@ public class ReadingActivity extends AppCompatActivity {
     private void updatePageButtons() {
         if (spineReferences == null) return;
         
-        // 更新翻页按钮的可见性
-        previousPageButton.setVisibility(View.VISIBLE);
-        nextPageButton.setVisibility(View.VISIBLE);
+        // 检查按钮是否需要显示
+        boolean shouldShowButtons = !isMenuVisible && fontSettingsLayer.getVisibility() != View.VISIBLE;
+        
+        if (shouldShowButtons) {
+            // 显示翻页按钮并添加动画效果
+            if (previousPageButton.getVisibility() != View.VISIBLE) {
+                previousPageButton.setVisibility(View.VISIBLE);
+                animateButtonAppear(previousPageButton);
+            }
+            
+            if (nextPageButton.getVisibility() != View.VISIBLE) {
+                nextPageButton.setVisibility(View.VISIBLE);
+                animateButtonAppear(nextPageButton);
+            }
+        } else {
+            // 隐藏翻页按钮并添加动画效果
+            if (previousPageButton.getVisibility() == View.VISIBLE) {
+                animateButtonDisappear(previousPageButton);
+            }
+            
+            if (nextPageButton.getVisibility() == View.VISIBLE) {
+                animateButtonDisappear(nextPageButton);
+            }
+        }
         
         // 更新按钮的可用性
         previousPageButton.setEnabled(currentPage > 0);
         nextPageButton.setEnabled(currentPage < spineReferences.size() - 1);
+        
+        // 根据按钮状态更新图标颜色（禁用状态使用灰色）
+        updateButtonColors();
     }
-
+    
+    // 显示按钮动画
+    private void animateButtonAppear(ImageButton button) {
+        AnimationSet animationSet = new AnimationSet(true);
+        
+        // 缩放动画
+        ScaleAnimation scaleAnimation = new ScaleAnimation(
+                0f, 1f, // X轴缩放
+                0f, 1f, // Y轴缩放
+                Animation.RELATIVE_TO_SELF, 0.5f, // 缩放中心X
+                Animation.RELATIVE_TO_SELF, 0.5f); // 缩放中心Y
+        
+        // 渐变动画
+        AlphaAnimation alphaAnimation = new AlphaAnimation(0f, 1f);
+        
+        animationSet.addAnimation(scaleAnimation);
+        animationSet.addAnimation(alphaAnimation);
+        animationSet.setDuration(BUTTON_ANIMATION_DURATION);
+        animationSet.setInterpolator(this, android.R.interpolator.decelerate_cubic);
+        
+        button.startAnimation(animationSet);
+    }
+    
+    // 隐藏按钮动画
+    private void animateButtonDisappear(ImageButton button) {
+        AnimationSet animationSet = new AnimationSet(true);
+        
+        // 缩放动画
+        ScaleAnimation scaleAnimation = new ScaleAnimation(
+                1f, 0f, // X轴缩放
+                1f, 0f, // Y轴缩放
+                Animation.RELATIVE_TO_SELF, 0.5f, // 缩放中心X
+                Animation.RELATIVE_TO_SELF, 0.5f); // 缩放中心Y
+        
+        // 渐变动画
+        AlphaAnimation alphaAnimation = new AlphaAnimation(1f, 0f);
+        
+        animationSet.addAnimation(scaleAnimation);
+        animationSet.addAnimation(alphaAnimation);
+        animationSet.setDuration(BUTTON_ANIMATION_DURATION);
+        animationSet.setInterpolator(this, android.R.interpolator.accelerate_cubic);
+        
+        // 动画结束后隐藏按钮
+        animationSet.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {}
+            
+            @Override
+            public void onAnimationRepeat(Animation animation) {}
+            
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                button.setVisibility(View.GONE);
+            }
+        });
+        
+        button.startAnimation(animationSet);
+    }
+    
+    // 更新按钮颜色状态（ImageButton不需要特殊处理）
+    private void updateButtonColors() {
+        // ImageButton会自动根据启用状态改变外观，无需额外处理
+    }
+    
     private void toggleMenu() {
         Log.d(TAG, "toggleMenu: Current state isMenuVisible=" + isMenuVisible);
         if (isMenuVisible) {
@@ -563,8 +659,14 @@ public class ReadingActivity extends AppCompatActivity {
     
     private void hidePageButtons() {
         Log.d(TAG, "hidePageButtons: Hiding page navigation buttons");
-        previousPageButton.setVisibility(View.GONE);
-        nextPageButton.setVisibility(View.GONE);
+        // 使用动画隐藏按钮
+        if (previousPageButton.getVisibility() == View.VISIBLE) {
+            animateButtonDisappear(previousPageButton);
+        }
+        
+        if (nextPageButton.getVisibility() == View.VISIBLE) {
+            animateButtonDisappear(nextPageButton);
+        }
     }
 
     private void hideMenu() {

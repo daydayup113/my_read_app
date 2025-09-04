@@ -32,24 +32,30 @@
         android:background="@android:color/transparent" />
 
     <!-- 上一页按钮 -->
-    <Button
+    <ImageButton
         android:id="@+id/previousPageButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_gravity="bottom|start"
         android:layout_margin="16dp"
-        android:text="上一页"
-        android:visibility="gone" />
+        android:src="@drawable/ic_previous"
+        android:contentDescription="上一页"
+        android:visibility="gone"
+        android:background="@android:color/transparent"
+        android:scaleType="centerInside" />
 
     <!-- 下一页按钮 -->
-    <Button
+    <ImageButton
         android:id="@+id/nextPageButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:text="下一页"
-        android:visibility="gone" />
+        android:src="@drawable/ic_next"
+        android:contentDescription="下一页"
+        android:visibility="gone"
+        android:background="@android:color/transparent"
+        android:scaleType="centerInside" />
 
     <!-- 菜单层 -->
     <LinearLayout
