@@ -10,6 +10,7 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.TranslateAnimation;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ScrollView;
@@ -20,6 +21,7 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
 import java.io.InputStream;
 import java.util.List;
@@ -32,6 +34,10 @@ import nl.siegmann.epublib.epub.EpubReader;
 
 public class ReadingActivity extends AppCompatActivity {
     private static final String TAG = "ReadingActivity";
+    
+    // 添加动画持续时间常量
+    private static final int ANIMATION_DURATION = 300;
+    
     private static final String PREFS_NAME = "ReadingProgress";
     private static final String FONT_SIZE_PREF = "fontSize";
     private static final String LINE_SPACING_PREF = "lineSpacing";
@@ -54,6 +60,10 @@ public class ReadingActivity extends AppCompatActivity {
     private int currentPage = 0;
     private List<SpineReference> spineReferences;
     private SharedPreferences sharedPreferences;
+    
+    // 添加菜单视图引用
+    private CardView topMenu;
+    private CardView bottomMenu;
     
     // 字体设置相关变量
     private float currentTextSize = 18f; // 默认字体大小
@@ -185,6 +195,10 @@ public class ReadingActivity extends AppCompatActivity {
                 // 可以在这里实现滚动到底部时加载更多内容的逻辑
             });
         }
+        
+        // 初始化菜单视图引用
+        topMenu = findViewById(R.id.topMenu);
+        bottomMenu = findViewById(R.id.bottomMenu);
     }
     
     // 恢复用户设置
@@ -512,6 +526,39 @@ public class ReadingActivity extends AppCompatActivity {
         menuLayer.setVisibility(View.VISIBLE);
         isMenuVisible = true;
         hidePageButtons();
+        
+        // 设置书籍标题
+        TextView bookTitleView = findViewById(R.id.bookTitle);
+        if (bookTitleView != null && bookTitle != null) {
+            bookTitleView.setText(bookTitle);
+        }
+        
+        // 添加滑出动画
+        // 顶部菜单从上方滑入
+        TranslateAnimation topAnimation = new TranslateAnimation(
+                TranslateAnimation.RELATIVE_TO_SELF, 0,
+                TranslateAnimation.RELATIVE_TO_SELF, 0,
+                TranslateAnimation.RELATIVE_TO_SELF, -1.0f,
+                TranslateAnimation.RELATIVE_TO_SELF, 0);
+        topAnimation.setDuration(ANIMATION_DURATION);
+        topAnimation.setFillAfter(true);
+        
+        // 底部菜单从下方滑入
+        TranslateAnimation bottomAnimation = new TranslateAnimation(
+                TranslateAnimation.RELATIVE_TO_SELF, 0,
+                TranslateAnimation.RELATIVE_TO_SELF, 0,
+                TranslateAnimation.RELATIVE_TO_SELF, 1.0f,
+                TranslateAnimation.RELATIVE_TO_SELF, 0);
+        bottomAnimation.setDuration(ANIMATION_DURATION);
+        bottomAnimation.setFillAfter(true);
+        
+        // 应用动画
+        if (topMenu != null) {
+            topMenu.startAnimation(topAnimation);
+        }
+        if (bottomMenu != null) {
+            bottomMenu.startAnimation(bottomAnimation);
+        }
     }
     
     private void hidePageButtons() {
@@ -522,10 +569,48 @@ public class ReadingActivity extends AppCompatActivity {
 
     private void hideMenu() {
         Log.d(TAG, "hideMenu: Hiding menu");
-        menuLayer.setVisibility(View.GONE);
-        isMenuVisible = false;
-        // 显示翻页按钮
-        updatePageButtons();
+        
+        // 添加滑出动画
+        TranslateAnimation topAnimation = new TranslateAnimation(
+                TranslateAnimation.RELATIVE_TO_SELF, 0,
+                TranslateAnimation.RELATIVE_TO_SELF, 0,
+                TranslateAnimation.RELATIVE_TO_SELF, 0,
+                TranslateAnimation.RELATIVE_TO_SELF, -1.0f);
+        topAnimation.setDuration(ANIMATION_DURATION);
+        topAnimation.setFillAfter(true);
+        
+        TranslateAnimation bottomAnimation = new TranslateAnimation(
+                TranslateAnimation.RELATIVE_TO_SELF, 0,
+                TranslateAnimation.RELATIVE_TO_SELF, 0,
+                TranslateAnimation.RELATIVE_TO_SELF, 0,
+                TranslateAnimation.RELATIVE_TO_SELF, 1.0f);
+        bottomAnimation.setDuration(ANIMATION_DURATION);
+        bottomAnimation.setFillAfter(true);
+        
+        // 动画结束后隐藏菜单层
+        bottomAnimation.setAnimationListener(new android.view.animation.Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(android.view.animation.Animation animation) {}
+            
+            @Override
+            public void onAnimationRepeat(android.view.animation.Animation animation) {}
+            
+            @Override
+            public void onAnimationEnd(android.view.animation.Animation animation) {
+                menuLayer.setVisibility(View.GONE);
+                isMenuVisible = false;
+                // 显示翻页按钮
+                updatePageButtons();
+            }
+        });
+        
+        // 应用动画
+        if (topMenu != null) {
+            topMenu.startAnimation(topAnimation);
+        }
+        if (bottomMenu != null) {
+            bottomMenu.startAnimation(bottomAnimation);
+        }
     }
 
     private void openTableOfContents() {

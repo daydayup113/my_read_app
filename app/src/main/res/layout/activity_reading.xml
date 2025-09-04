@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -50,31 +51,56 @@
         android:text="下一页"
         android:visibility="gone" />
 
-    <!-- 菜单层 android:visibility="gone"-->
+    <!-- 菜单层 -->
     <LinearLayout
         android:id="@+id/menuLayer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="#80ADD8E6">
+        android:background="#00000000"
+        android:visibility="gone">
 
         <!-- 顶部菜单 -->
-        <LinearLayout
+        <androidx.cardview.widget.CardView
+            android:id="@+id/topMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="16dp"
-            android:background="#FFFFFF">
+            android:layout_margin="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
 
-            <ImageButton
-                android:id="@+id/backButton"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:src="@android:drawable/ic_menu_revert"
-                android:contentDescription="返回"
-                android:background="?android:attr/selectableItemBackgroundBorderless" />
+                android:orientation="horizontal"
+                android:padding="12dp"
+                android:background="#FFFFFF"
+                android:gravity="center_vertical">
 
-        </LinearLayout>
+                <ImageButton
+                    android:id="@+id/backButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_menu_revert"
+                    android:contentDescription="返回"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/bookTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="书籍标题"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#000000"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
 
         <!-- 中间区域（点击隐藏菜单） -->
         <View
@@ -85,41 +111,51 @@
             android:background="#00000000" />
 
         <!-- 底部菜单 -->
-        <LinearLayout
+        <androidx.cardview.widget.CardView
+            android:id="@+id/bottomMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:padding="16dp"
-            android:background="#FFFFFF">
+            android:layout_margin="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
 
-            <ImageButton
-                android:id="@+id/tocButton"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:src="@android:drawable/ic_menu_sort_by_size"
-                android:contentDescription="目录"
-                android:background="?android:attr/selectableItemBackgroundBorderless" />
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:padding="16dp"
+                android:background="#FFFFFF">
 
-            <ImageButton
-                android:id="@+id/settingsButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@android:drawable/ic_menu_preferences"
-                android:contentDescription="设置"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:layout_marginStart="16dp" />
-                
-            <ImageButton
-                android:id="@+id/backgroundButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@android:drawable/ic_menu_gallery"
-                android:contentDescription="背景色"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:layout_marginStart="16dp" />
+                <ImageButton
+                    android:id="@+id/tocButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_menu_sort_by_size"
+                    android:contentDescription="目录"
+                    android:background="?android:attr/selectableItemBackgroundBorderless" />
 
-        </LinearLayout>
+                <ImageButton
+                    android:id="@+id/settingsButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_menu_preferences"
+                    android:contentDescription="设置"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:layout_marginStart="32dp" />
+                    
+                <ImageButton
+                    android:id="@+id/backgroundButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_menu_gallery"
+                    android:contentDescription="背景色"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:layout_marginStart="32dp" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
 
     </LinearLayout>
 
