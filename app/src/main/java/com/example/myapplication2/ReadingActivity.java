@@ -95,6 +95,13 @@ public class ReadingActivity extends AppCompatActivity {
         bookTitle = getIntent().getStringExtra("book_title");
         if (uriString != null) {
             bookUri = Uri.parse(uriString);
+            // 请求持久的URI权限
+            try {
+                getContentResolver().takePersistableUriPermission(bookUri, 
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } catch (SecurityException e) {
+                Log.w(TAG, "无法获取URI权限: " + e.getMessage());
+            }
         }
         Log.d(TAG, "onCreate: bookUri=" + bookUri + ", bookTitle=" + bookTitle);
 
@@ -419,8 +426,17 @@ public class ReadingActivity extends AppCompatActivity {
         Log.d(TAG, "loadEpubBook: Loading EPUB book from URI: " + bookUri);
         try (InputStream epubInputStream = getContentResolver().openInputStream(bookUri)) {
             return new EpubReader().readEpub(epubInputStream);
+        } catch (SecurityException e) {
+            Log.e(TAG, "没有权限访问EPUB文件: " + e.getMessage(), e);
+            runOnUiThread(() -> {
+                Toast.makeText(ReadingActivity.this, "没有权限访问EPUB文件，请重新选择书籍", Toast.LENGTH_LONG).show();
+            });
+            return null;
         } catch (Exception e) {
             Log.e(TAG, "解析EPUB文件时出错", e);
+            runOnUiThread(() -> {
+                Toast.makeText(ReadingActivity.this, "解析EPUB文件时出错: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            });
             return null;
         }
     }

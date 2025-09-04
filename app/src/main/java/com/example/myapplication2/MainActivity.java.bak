@@ -1,3 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/editTextTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="书名"
+        android:inputType="textShortMessage"
+        android:maxLines="1" />
+
+    <EditText
+        android:id="@+id/editTextAuthor"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="作者"
+        android:inputType="textShortMessage"
+        android:maxLines="1" />
+
+</LinearLayout>
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <android.widget.EditText
+        android:id="@+id/editTextTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="书名"
+        android:inputType="textShortMessage"
+        android:maxLines="1" />
+
+    <android.widget.EditText
+        android:id="@+id/editTextAuthor"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="作者"
+        android:inputType="textShortMessage"
+        android:maxLines="1" />
+
+</LinearLayout>
 package com.example.myapplication2;
 
 import android.Manifest;
@@ -146,57 +194,20 @@ public class MainActivity extends AppCompatActivity {
                 .setTitle("编辑书籍信息")
                 .setView(dialogView)
                 .setPositiveButton("保存", (dialog, which) -> {
-                    String newTitle = titleEditText.getText().toString().trim();
-                    String newAuthor = authorEditText.getText().toString().trim();
-                    
-                    if (!newTitle.isEmpty()) {
-                        // 如果标题发生了变化，需要重命名文件
-                        String oldFileName = book.getFileName();
-                        String newFileName = newTitle + ".epub";
-                        
-                        if (!newFileName.equals(oldFileName)) {
-                            // 重命名本地文件
-                            File oldFile = new File(booksDirectory, oldFileName);
-                            File newFile = new File(booksDirectory, newFileName);
-                            
-                            if (oldFile.exists()) {
-                                if (!newFile.exists()) {
-                                    if (oldFile.renameTo(newFile)) {
-                                        // 更新书籍信息
-                                        book.setTitle(newTitle);
-                                        book.setAuthor(newAuthor);
-                                        book.setFileName(newFileName);
-                                        
-                                        // 更新URI为新的本地文件URI
-                                        Uri newUri = Uri.fromFile(newFile);
-                                        book.setUri(newUri);
-                                        
-                                        // 更新显示
-                                        booksAdapter.notifyItemChanged(position);
-                                        // 保存更新后的书籍列表
-                                        saveBooks();
-                                        Toast.makeText(this, "书籍信息已更新", Toast.LENGTH_SHORT).show();
-                                    } else {
-                                        Toast.makeText(this, "文件重命名失败", Toast.LENGTH_SHORT).show();
-                                    }
-                                } else {
-                                    Toast.makeText(this, "已存在同名书籍", Toast.LENGTH_SHORT).show();
-                                }
-                            } else {
-                                Toast.makeText(this, "原文件不存在", Toast.LENGTH_SHORT).show();
-                            }
-                        } else {
-                            // 只更新作者信息，但也需要更新标题（用户可能只是编辑了标题但没有改变文件名）
-                            book.setTitle(newTitle);
-                            book.setAuthor(newAuthor);
-                            // 更新显示
-                            booksAdapter.notifyItemChanged(position);
-                            // 保存更新后的书籍列表
-                            saveBooks();
-                            Toast.makeText(this, "书籍信息已更新", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                })
+            String newTitle = titleEditText.getText().toString().trim();
+            String newAuthor = authorEditText.getText().toString().trim();
+            
+            if (!newTitle.isEmpty()) {
+                // 更新书籍信息
+                book.setFileName(newTitle + ".epub");
+                book.setAuthor(newAuthor);
+                // 更新显示
+                booksAdapter.notifyItemChanged(position);
+                // 保存更新后的书籍列表
+                saveBooks();
+                Toast.makeText(this, "书籍信息已更新", Toast.LENGTH_SHORT).show();
+            }
+        })
                 .setNegativeButton("取消", null)
                 .show();
     }
@@ -292,10 +303,6 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("NotifyDataSetChanged")
     private void handleSelectedFile(Uri uri) {
         try {
-            // 请求持久的URI权限
-            getContentResolver().takePersistableUriPermission(uri, 
-                Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                
             ContentResolver contentResolver = getContentResolver();
             Cursor cursor = contentResolver.query(uri, null, null, null, null);
             String fileName = "unknown.epub";
@@ -326,9 +333,8 @@ public class MainActivity extends AppCompatActivity {
             File destFile = new File(booksDirectory, fileName);
             copyFile(uri, destFile);
             
-            // 创建EPUBBook对象，使用本地文件的URI而不是原始URI
-            Uri localUri = Uri.fromFile(destFile);
-            EPUBBook book = new EPUBBook(localUri, fileName, "未知作者", 0, 0, System.currentTimeMillis(), fileName);
+            // 创建EPUBBook对象
+            EPUBBook book = new EPUBBook(uri, fileName, "未知作者", 0, 0, System.currentTimeMillis(), fileName);
             epubBooks.add(book);
             
             // 更新列表显示
@@ -339,9 +345,6 @@ public class MainActivity extends AppCompatActivity {
             saveBooks();
             
             Toast.makeText(this, "书籍添加成功", Toast.LENGTH_SHORT).show();
-        } catch (SecurityException e) {
-            Log.e(TAG, "权限错误: " + e.getMessage());
-            Toast.makeText(this, "权限不足，无法访问文件: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             Log.d(TAG,"错误日志====handleSelectedFile 249");
             Toast.makeText(this, "添加书籍失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -366,7 +369,6 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("NotifyDataSetChanged")
     private void loadSavedBooks() {
         String booksJson = sharedPreferences.getString(BOOK_LIST_KEY, "");
-        boolean booksChanged = false;
         if (!booksJson.isEmpty()) {
             epubBooks.clear();
             String[] bookStrings = booksJson.split(";");
@@ -375,7 +377,7 @@ public class MainActivity extends AppCompatActivity {
                     String[] parts = bookString.split("\\|");
                     if (parts.length >= 6) {
                         try {
-                            // 注意：这里我们不再使用保存的URI，而是直接使用本地文件构建URI
+                            Uri uri = Uri.parse(parts[0]);
                             String title = parts[1];
                             String author = parts[2];
                             int currentPage = Integer.parseInt(parts[3]);
@@ -383,20 +385,14 @@ public class MainActivity extends AppCompatActivity {
                             long lastReadTime = Long.parseLong(parts[5]);
                             String fileName = (parts.length > 6) ? parts[6] : "unknown.epub";
                             
-                            // 检查本地文件是否存在
+                            // 检查文件是否存在
                             File bookFile = new File(booksDirectory, fileName);
                             if (bookFile.exists()) {
-                                // 使用本地文件路径创建URI
-                                Uri localUri = Uri.fromFile(bookFile);
-                                EPUBBook book = new EPUBBook(localUri, title, author, currentPage, totalPages, lastReadTime, fileName);
+                                EPUBBook book = new EPUBBook(uri, title, author, currentPage, totalPages, lastReadTime, fileName);
                                 epubBooks.add(book);
-                            } else {
-                                // 文件不存在，标记为需要更新
-                                booksChanged = true;
                             }
                         } catch (Exception e) {
                             Log.d(TAG,"错误日志====handleSelectedFile 249"+e);
-                            booksChanged = true;
                         }
                     }
                 }
@@ -408,11 +404,6 @@ public class MainActivity extends AppCompatActivity {
         
         if (booksAdapter != null) {
             booksAdapter.notifyDataSetChanged();
-        }
-        
-        // 如果有书籍被移除，则重新保存书籍列表
-        if (booksChanged) {
-            saveBooks();
         }
     }
 

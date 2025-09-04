@@ -3,8 +3,8 @@ package com.example.myapplication2;
 import android.net.Uri;
 
 public class EPUBBook {
-    private final Uri uri;
-    private final String title;
+    private Uri uri;
+    private String title; // 移除final修饰符，使其可以被修改
     private String author;
     private int currentPage;
     private int totalPages;
@@ -101,5 +101,15 @@ public class EPUBBook {
     
     public void setFileName(String fileName) {
         this.fileName = fileName;
+    }
+    
+    // 添加标题的setter方法
+    public void setTitle(String title) {
+        this.title = title;
+    }
+    
+    // 添加URI的setter方法
+    public void setUri(Uri uri) {
+        this.uri = uri;
     }
 }

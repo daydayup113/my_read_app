@@ -10,4 +10,6 @@
     <string name="PREVIOUS">上一页</string>
     <string name="NEXT">下一页</string>
     <string name="BookCovers">书籍封面</string>
+    <string name="EPUBRead">EPUB 阅读器</string>
+    <string name="AddEPUBFile">添加 EPUB 文件</string>
 </resources>
