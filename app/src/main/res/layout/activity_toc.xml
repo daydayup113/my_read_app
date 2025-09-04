@@ -28,20 +28,17 @@
 
     </androidx.cardview.widget.CardView>
 
-    <!-- 章节列表和垂直进度条 -->
-    <LinearLayout
+    <!-- 章节列表 -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="horizontal"
         android:padding="8dp">
 
-        <!-- 章节列表 -->
         <ListView
             android:id="@+id/tocListView"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="1"
             android:paddingEnd="4dp"
             android:clipToPadding="false"
             android:divider="@null"
@@ -49,14 +46,16 @@
             android:scrollbarStyle="outsideOverlay"
             android:scrollbars="none" />
 
-        <!-- 垂直滚动进度条 -->
+        <!-- 垂直滚动进度条（浮动显示） -->
         <FrameLayout
             android:id="@+id/progressBarContainer"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_marginStart="4dp"
+            android:layout_gravity="end"
+            android:layout_marginEnd="12dp"
             android:paddingStart="8dp"
-            android:paddingEnd="8dp">
+            android:paddingEnd="8dp"
+            android:visibility="gone">
 
             <View
                 android:layout_width="4dp"
@@ -74,6 +73,6 @@
 
         </FrameLayout>
 
-    </LinearLayout>
+    </FrameLayout>
 
 </LinearLayout>

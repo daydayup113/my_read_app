@@ -3,9 +3,11 @@ package com.example.myapplication2;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.TranslateAnimation;
 import android.widget.AbsListView;
 import android.widget.FrameLayout;
 import android.widget.ListView;
@@ -31,12 +33,26 @@ public class TableOfContentsActivity extends AppCompatActivity {
     private List<TOCReference> chapters;
     private Book epubBook;
     private boolean isTrackingTouch = false; // 标记是否正在拖动进度条
+    private int currentChapterPosition = -1; // 当前章节位置
+    private boolean isScrolling = false; // 标记列表是否正在滚动
+    private Handler hideHandler = new Handler();
+    private Runnable hideRunnable = new Runnable() {
+        @Override
+        public void run() {
+            hideProgressBar();
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_toc);
 
+        // 获取传递的当前章节位置
+        Intent intent = getIntent();
+        currentChapterPosition = intent.getIntExtra("current_chapter", -1);
+        Log.d(TAG, "Received currentChapterPosition: " + currentChapterPosition);
+        
         initViews();
         loadTableOfContents();
         setupListViewListener();
@@ -48,7 +64,7 @@ public class TableOfContentsActivity extends AppCompatActivity {
         progressBarContainer = findViewById(R.id.progressBarContainer);
         
         chapters = new ArrayList<>();
-        tocAdapter = new TOCAdapter(this, chapters);
+        tocAdapter = new TOCAdapter(this, chapters, currentChapterPosition); // 传递当前章节位置给适配器
         tocListView.setAdapter(tocAdapter);
 
         tocListView.setOnItemClickListener((parent, view, position, id) -> {
@@ -77,12 +93,19 @@ public class TableOfContentsActivity extends AppCompatActivity {
     private void handleProgressTouch(MotionEvent event) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-            case MotionEvent.ACTION_MOVE:
                 isTrackingTouch = true;
+                showProgressBar();
+                scrollToPosition(event.getY());
+                break;
+            case MotionEvent.ACTION_MOVE:
                 scrollToPosition(event.getY());
                 break;
             case MotionEvent.ACTION_UP:
                 isTrackingTouch = false;
+                // 如果不在滚动状态，1秒后隐藏进度条
+                if (!isScrolling) {
+                    hideHandler.postDelayed(hideRunnable, 1000);
+                }
                 break;
         }
     }
@@ -118,7 +141,21 @@ public class TableOfContentsActivity extends AppCompatActivity {
         tocListView.setOnScrollListener(new AbsListView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(AbsListView view, int scrollState) {
-                // 滚动状态改变时不需要特殊处理
+                switch (scrollState) {
+                    case AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
+                    case AbsListView.OnScrollListener.SCROLL_STATE_FLING:
+                        // 用户开始滚动，显示进度条
+                        isScrolling = true;
+                        showProgressBar();
+                        // 取消之前的隐藏任务
+                        hideHandler.removeCallbacks(hideRunnable);
+                        break;
+                    case AbsListView.OnScrollListener.SCROLL_STATE_IDLE:
+                        // 滚动停止，1秒后隐藏进度条
+                        isScrolling = false;
+                        hideHandler.postDelayed(hideRunnable, 1000);
+                        break;
+                }
             }
 
             @Override
@@ -138,6 +175,31 @@ public class TableOfContentsActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+    
+    // 显示进度条
+    private void showProgressBar() {
+        if (progressBarContainer.getVisibility() != View.VISIBLE) {
+            progressBarContainer.setVisibility(View.VISIBLE);
+            // 添加淡入动画
+            progressBarContainer.setAlpha(0f);
+            progressBarContainer.animate()
+                    .alpha(1f)
+                    .setDuration(200)
+                    .start();
+        }
+    }
+    
+    // 隐藏进度条
+    private void hideProgressBar() {
+        if (progressBarContainer.getVisibility() == View.VISIBLE && !isTrackingTouch && !isScrolling) {
+            // 添加淡出动画
+            progressBarContainer.animate()
+                    .alpha(0f)
+                    .setDuration(200)
+                    .withEndAction(() -> progressBarContainer.setVisibility(View.GONE))
+                    .start();
+        }
     }
 
     private void updateProgressIndicator(float progress) {
@@ -177,6 +239,18 @@ public class TableOfContentsActivity extends AppCompatActivity {
                         chapters.addAll(tocReferences);
                         tocAdapter.notifyDataSetChanged();
                         
+                        // 如果有当前章节位置，则滚动到该位置
+                        if (currentChapterPosition >= 0 && currentChapterPosition < chapters.size()) {
+                            tocListView.setSelection(currentChapterPosition);
+                            
+                            // 延迟更新进度条位置，确保列表已经布局完成
+                            tocListView.post(() -> {
+                                float progress = (float) currentChapterPosition / (chapters.size() - 1);
+                                progress = Math.max(0, Math.min(1, progress));
+                                updateProgressIndicator(progress);
+                            });
+                        }
+                        
                         Log.d(TAG, "成功加载 " + tocReferences.size() + " 个目录项");
                     } else {
                         Log.w(TAG, "书籍没有目录信息");
@@ -194,5 +268,12 @@ public class TableOfContentsActivity extends AppCompatActivity {
             Log.e(TAG, "未接收到书籍URI");
             Toast.makeText(this, "未接收到书籍信息", Toast.LENGTH_LONG).show();
         }
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // 清理Handler回调
+        hideHandler.removeCallbacksAndMessages(null);
     }
 }

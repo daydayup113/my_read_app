@@ -537,6 +537,7 @@ public class ReadingActivity extends AppCompatActivity {
                 Intent intent = new Intent(this, TableOfContentsActivity.class);
                 intent.putExtra("book_uri", bookUri.toString());
                 intent.putExtra("book_title", bookTitle);
+                intent.putExtra("current_chapter", currentPage); // 传递当前章节位置
                 tocActivityResultLauncher.launch(intent);
                 hideMenu();
             } else {
