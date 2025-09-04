@@ -27,6 +27,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
 import java.io.InputStream;
 import java.util.List;
 
@@ -79,12 +81,12 @@ public class ReadingActivity extends AppCompatActivity {
     private int currentBackgroundColor = 0xFFADD8E6; // 默认背景色 (浅蓝色)
     
     // 字体设置层中的控件
-    private Button btnFontSizeDecrease;
-    private Button btnFontSizeIncrease;
-    private Button btnLineSpacingDecrease;
-    private Button btnLineSpacingIncrease;
-    private Button btnLetterSpacingDecrease;
-    private Button btnLetterSpacingIncrease;
+    private FloatingActionButton btnFontSizeDecrease;
+    private FloatingActionButton btnFontSizeIncrease;
+    private FloatingActionButton btnLineSpacingDecrease;
+    private FloatingActionButton btnLineSpacingIncrease;
+    private FloatingActionButton btnLetterSpacingDecrease;
+    private FloatingActionButton btnLetterSpacingIncrease;
     private TextView tvFontSize;
     private TextView tvLineSpacing;
     private TextView tvLetterSpacing;
@@ -177,12 +179,12 @@ public class ReadingActivity extends AppCompatActivity {
         
         // 初始化字体设置层中的控件
         if (fontSettingsLayer != null) {
-            btnFontSizeDecrease = fontSettingsLayer.findViewById(R.id.btn_font_size_decrease);
-            btnFontSizeIncrease = fontSettingsLayer.findViewById(R.id.btn_font_size_increase);
-            btnLineSpacingDecrease = fontSettingsLayer.findViewById(R.id.btn_line_spacing_decrease);
-            btnLineSpacingIncrease = fontSettingsLayer.findViewById(R.id.btn_line_spacing_increase);
-            btnLetterSpacingDecrease = fontSettingsLayer.findViewById(R.id.btn_letter_spacing_decrease);
-            btnLetterSpacingIncrease = fontSettingsLayer.findViewById(R.id.btn_letter_spacing_increase);
+            btnFontSizeDecrease = (FloatingActionButton) fontSettingsLayer.findViewById(R.id.btn_font_size_decrease);
+            btnFontSizeIncrease = (FloatingActionButton) fontSettingsLayer.findViewById(R.id.btn_font_size_increase);
+            btnLineSpacingDecrease = (FloatingActionButton) fontSettingsLayer.findViewById(R.id.btn_line_spacing_decrease);
+            btnLineSpacingIncrease = (FloatingActionButton) fontSettingsLayer.findViewById(R.id.btn_line_spacing_increase);
+            btnLetterSpacingDecrease = (FloatingActionButton) fontSettingsLayer.findViewById(R.id.btn_letter_spacing_decrease);
+            btnLetterSpacingIncrease = (FloatingActionButton) fontSettingsLayer.findViewById(R.id.btn_letter_spacing_increase);
             tvFontSize = fontSettingsLayer.findViewById(R.id.tv_font_size);
             tvLineSpacing = fontSettingsLayer.findViewById(R.id.tv_line_spacing);
             tvLetterSpacing = fontSettingsLayer.findViewById(R.id.tv_letter_spacing);

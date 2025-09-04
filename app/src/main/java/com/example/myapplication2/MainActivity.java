@@ -201,20 +201,21 @@ public class MainActivity extends AppCompatActivity {
 
     // 删除书籍
     private void deleteBook(EPUBBook book, int position) {
-        // 从列表中移除
-        epubBooks.remove(position);
-        booksAdapter.notifyItemRemoved(position);
-        
-        // 删除存储的文件
-        File bookFile = new File(booksDirectory, book.getFileName());
-        if (bookFile.exists()) {
-            bookFile.delete();
+        // 检查索引是否有效
+        if (position >= 0 && position < epubBooks.size()) {
+            // 从列表中移除
+            epubBooks.remove(position);
+            booksAdapter.notifyItemRemoved(position);
+            
+            // 删除存储的文件
+            File bookFile = new File(booksDirectory, book.getFileName());
+            if (bookFile.exists()) {
+                bookFile.delete();
+            }
+            
+            // 保存更新后的书籍列表
+            saveBooks();
         }
-        
-        // 保存更新后的书籍列表
-        saveBooks();
-        
-        Toast.makeText(this, "书籍已删除", Toast.LENGTH_SHORT).show();
     }
 
     // 打开书籍
