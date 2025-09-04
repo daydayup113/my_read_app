@@ -2,6 +2,7 @@ package com.example.myapplication2;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -12,6 +13,8 @@ import android.widget.AbsListView;
 import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import java.lang.ref.WeakReference;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -42,6 +45,7 @@ public class TableOfContentsActivity extends AppCompatActivity {
             hideProgressBar();
         }
     };
+    private LoadTableOfContentsTask loadTask; // 异步加载任务
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,8 +58,103 @@ public class TableOfContentsActivity extends AppCompatActivity {
         Log.d(TAG, "Received currentChapterPosition: " + currentChapterPosition);
         
         initViews();
-        loadTableOfContents();
+        // 异步加载目录
+        loadTask = new LoadTableOfContentsTask(this);
+        loadTask.execute();
         setupListViewListener();
+    }
+    
+    private static class LoadTableOfContentsTask extends AsyncTask<Void, Void, List<TOCReference>> {
+        private final WeakReference<TableOfContentsActivity> activityReference;
+        private Exception exception;
+
+        LoadTableOfContentsTask(TableOfContentsActivity activity) {
+            activityReference = new WeakReference<>(activity);
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            TableOfContentsActivity activity = activityReference.get();
+            if (activity == null || activity.isFinishing()) {
+                return;
+            }
+            // 显示加载进度
+            activity.showProgressBar();
+        }
+
+        @Override
+        protected List<TOCReference> doInBackground(Void... voids) {
+            TableOfContentsActivity activity = activityReference.get();
+            if (activity == null || activity.isFinishing()) {
+                return null;
+            }
+
+            try {
+                // 从URI加载EPUB书籍
+                Intent intent = activity.getIntent();
+                String uriString = intent.getStringExtra("book_uri");
+                
+                if (uriString == null) {
+                    Log.e(TAG, "未接收到书籍URI");
+                    return null;
+                }
+                
+                Uri bookUri = Uri.parse(uriString);
+                try (InputStream epubInputStream = activity.getContentResolver().openInputStream(bookUri)) {
+                    activity.epubBook = new EpubReader().readEpub(epubInputStream);
+                }
+
+                if (activity.epubBook == null) {
+                    Log.e(TAG, "无法加载EPUB书籍");
+                    return null;
+                }
+
+                TableOfContents toc = activity.epubBook.getTableOfContents();
+                return toc != null ? toc.getTocReferences() : null;
+            } catch (Exception e) {
+                Log.e(TAG, "加载目录时出错", e);
+                this.exception = e;
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(List<TOCReference> tocReferences) {
+            TableOfContentsActivity activity = activityReference.get();
+            if (activity == null || activity.isFinishing()) {
+                return;
+            }
+
+            activity.hideProgressBar();
+            
+            if (exception != null) {
+                Toast.makeText(activity, "加载目录时出错: " + exception.getMessage(), Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            if (tocReferences != null && !tocReferences.isEmpty()) {
+                activity.chapters.addAll(tocReferences);
+                activity.tocAdapter.notifyDataSetChanged();
+                
+                // 如果有当前章节位置，则滚动到该位置
+                if (activity.currentChapterPosition >= 0 && activity.currentChapterPosition < activity.chapters.size()) {
+                    activity.tocListView.setSelection(activity.currentChapterPosition);
+                    
+                    // 延迟更新进度条位置，确保列表已经布局完成
+                    activity.tocListView.post(() -> {
+                        float progress = (float) activity.currentChapterPosition / (activity.chapters.size() - 1);
+                        progress = Math.max(0, Math.min(1, progress));
+                        activity.updateProgressIndicator(progress);
+                    });
+                }
+                
+                Log.d(TAG, "成功加载 " + tocReferences.size() + " 个目录项");
+            } else {
+                Log.w(TAG, "书籍没有目录信息");
+                Toast.makeText(activity, "该书籍没有目录信息", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private void initViews() {
@@ -216,64 +315,16 @@ public class TableOfContentsActivity extends AppCompatActivity {
             progressIndicator.setY(yPosition);
         });
     }
-
-    private void loadTableOfContents() {
-        // 获取传递的书籍信息
-        Intent intent = getIntent();
-        String uriString = intent.getStringExtra("book_uri");
-        String bookTitle = intent.getStringExtra("book_title");
-        
-        if (uriString != null) {
-            try {
-                Uri bookUri = Uri.parse(uriString);
-                // 从URI加载EPUB书籍
-                try (InputStream epubInputStream = getContentResolver().openInputStream(bookUri)) {
-                    epubBook = new EpubReader().readEpub(epubInputStream);
-                }
-                
-                if (epubBook != null) {
-                    TableOfContents toc = epubBook.getTableOfContents();
-                    List<TOCReference> tocReferences = toc.getTocReferences();
-                    
-                    if (tocReferences != null && !tocReferences.isEmpty()) {
-                        chapters.addAll(tocReferences);
-                        tocAdapter.notifyDataSetChanged();
-                        
-                        // 如果有当前章节位置，则滚动到该位置
-                        if (currentChapterPosition >= 0 && currentChapterPosition < chapters.size()) {
-                            tocListView.setSelection(currentChapterPosition);
-                            
-                            // 延迟更新进度条位置，确保列表已经布局完成
-                            tocListView.post(() -> {
-                                float progress = (float) currentChapterPosition / (chapters.size() - 1);
-                                progress = Math.max(0, Math.min(1, progress));
-                                updateProgressIndicator(progress);
-                            });
-                        }
-                        
-                        Log.d(TAG, "成功加载 " + tocReferences.size() + " 个目录项");
-                    } else {
-                        Log.w(TAG, "书籍没有目录信息");
-                        Toast.makeText(this, "该书籍没有目录信息", Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    Log.e(TAG, "无法加载EPUB书籍");
-                    Toast.makeText(this, "无法加载EPUB书籍", Toast.LENGTH_LONG).show();
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "加载目录时出错", e);
-                Toast.makeText(this, "加载目录时出错: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            }
-        } else {
-            Log.e(TAG, "未接收到书籍URI");
-            Toast.makeText(this, "未接收到书籍信息", Toast.LENGTH_LONG).show();
-        }
-    }
     
     @Override
     protected void onDestroy() {
         super.onDestroy();
         // 清理Handler回调
         hideHandler.removeCallbacksAndMessages(null);
+        
+        // 取消异步任务
+        if (loadTask != null) {
+            loadTask.cancel(true);
+        }
     }
 }
