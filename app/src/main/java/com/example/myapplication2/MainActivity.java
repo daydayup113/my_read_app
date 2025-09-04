@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQUEST_CODE = 1;
     private static final int FILE_PICKER_REQUEST_CODE = 2;
-    private static final String PREFS_NAME = "BookList";
+    public static final String PREFS_NAME = "BookList";
     private static final String BOOK_LIST_KEY = "books";
 
     private RecyclerView booksRecyclerView;
@@ -328,6 +328,7 @@ public class MainActivity extends AppCompatActivity {
             
             // 创建EPUBBook对象，使用本地文件的URI而不是原始URI
             Uri localUri = Uri.fromFile(destFile);
+            // 新添加的书籍初始化当前页为0，总页数为0，最后阅读时间为当前时间
             EPUBBook book = new EPUBBook(localUri, fileName, "未知作者", 0, 0, System.currentTimeMillis(), fileName);
             epubBooks.add(book);
             
@@ -378,8 +379,8 @@ public class MainActivity extends AppCompatActivity {
                             // 注意：这里我们不再使用保存的URI，而是直接使用本地文件构建URI
                             String title = parts[1];
                             String author = parts[2];
-                            int currentPage = Integer.parseInt(parts[3]);
-                            int totalPages = Integer.parseInt(parts[4]);
+                            int savedCurrentPage = Integer.parseInt(parts[3]); // 保存的当前页
+                            int savedTotalPages = Integer.parseInt(parts[4]);   // 保存的总页数
                             long lastReadTime = Long.parseLong(parts[5]);
                             String fileName = (parts.length > 6) ? parts[6] : "unknown.epub";
                             
@@ -388,6 +389,12 @@ public class MainActivity extends AppCompatActivity {
                             if (bookFile.exists()) {
                                 // 使用本地文件路径创建URI
                                 Uri localUri = Uri.fromFile(bookFile);
+                                
+                                // 从ReadingActivity的SharedPreferences中获取最新的当前页和总页数
+                                SharedPreferences readingPrefs = getSharedPreferences("ReadingProgress", MODE_PRIVATE);
+                                int currentPage = readingPrefs.getInt(localUri.toString(), savedCurrentPage);
+                                int totalPages = readingPrefs.getInt(localUri.toString() + "_total", savedTotalPages);
+                                
                                 EPUBBook book = new EPUBBook(localUri, title, author, currentPage, totalPages, lastReadTime, fileName);
                                 epubBooks.add(book);
                             } else {
@@ -419,20 +426,22 @@ public class MainActivity extends AppCompatActivity {
     private void saveBooks() {
         StringBuilder booksStringBuilder = new StringBuilder();
         for (EPUBBook book : epubBooks) {
-            booksStringBuilder.append(book.getUri().toString())
-                    .append("|")
-                    .append(book.getTitle())
-                    .append("|")
-                    .append(book.getAuthor())
-                    .append("|")
-                    .append(book.getCurrentPage())
-                    .append("|")
-                    .append(book.getTotalPages())
-                    .append("|")
-                    .append(book.getLastReadTime())
-                    .append("|")
-                    .append(book.getFileName())
-                    .append(";");
+            if (book != null) {
+                booksStringBuilder.append(book.getUri() != null ? book.getUri().toString() : "")
+                        .append("|")
+                        .append(book.getTitle() != null ? book.getTitle() : "未知标题")
+                        .append("|")
+                        .append(book.getAuthor() != null ? book.getAuthor() : "未知作者")
+                        .append("|")
+                        .append(book.getCurrentPage())
+                        .append("|")
+                        .append(book.getTotalPages())
+                        .append("|")
+                        .append(book.getLastReadTime())
+                        .append("|")
+                        .append(book.getFileName() != null ? book.getFileName() : "unknown.epub")
+                        .append(";");
+            }
         }
         
         SharedPreferences.Editor editor = sharedPreferences.edit();

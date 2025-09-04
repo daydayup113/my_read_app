@@ -689,37 +689,29 @@ public class ReadingActivity extends AppCompatActivity {
             editor.putInt(bookUri.toString(), page);
             editor.apply();
             
-            // 更新书籍列表中的进度信息
-            updateBookProgress(page);
+            // 更新MainActivity中的书籍进度信息
+            updateBookProgressInMainActivity();
         }
     }
     
-    // 更新书籍列表中的进度信息
-    private void updateBookProgress(int page) {
-        // 在实际应用中，这里应该更新书籍列表中的进度信息
-        // 由于当前架构限制，我们只记录日志
-        Log.d(TAG, "updateBookProgress: Updating book progress to page " + page);
-    }
     
-    // 获取保存的阅读进度
-    private int getSavedProgress() {
+    // 将书籍进度信息更新到MainActivity的SharedPreferences中
+    private void updateBookProgressInMainActivity() {
         if (bookUri != null) {
-            int progress = sharedPreferences.getInt(bookUri.toString(), 0);
-            Log.d(TAG, "getSavedProgress: progress=" + progress);
-            return progress;
+            // 获取MainActivity使用的SharedPreferences
+            SharedPreferences mainPrefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE);
+            SharedPreferences.Editor editor = mainPrefs.edit();
+            
+            // 使用书籍URI作为键，保存当前进度
+            editor.putInt(bookUri.toString(), currentPage);
+            // 保存总页数
+            editor.putInt(bookUri.toString() + "_total", spineReferences != null ? spineReferences.size() : 0);
+            
+            // 提交保存
+            editor.apply();
+            
+            Log.d(TAG, "updateBookProgressInMainActivity: Updated progress for " + bookUri + " to page " + currentPage);
         }
-        Log.d(TAG, "getSavedProgress: bookUri is null, returning 0");
-        return 0;
-    }
-    
-    @Override
-    protected void onPause() {
-        super.onPause();
-        Log.d(TAG, "onPause: Saving current progress, currentPage=" + currentPage);
-        // 在页面暂停时保存当前进度
-        saveProgress(currentPage);
-        // 保存用户设置
-        saveUserSettings();
     }
     
     // 保存总章节数
@@ -740,6 +732,17 @@ public class ReadingActivity extends AppCompatActivity {
             return totalPages;
         }
         Log.d(TAG, "getTotalChapters: bookUri is null, returning 0");
+        return 0;
+    }
+    
+    // 获取保存的阅读进度
+    private int getSavedProgress() {
+        if (bookUri != null) {
+            int progress = sharedPreferences.getInt(bookUri.toString(), 0);
+            Log.d(TAG, "getSavedProgress: progress=" + progress);
+            return progress;
+        }
+        Log.d(TAG, "getSavedProgress: bookUri is null, returning 0");
         return 0;
     }
     
