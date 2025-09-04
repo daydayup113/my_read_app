@@ -9,6 +9,7 @@ public class EPUBBook {
     private int currentPage;
     private int totalPages;
     private long lastReadTime; // 添加最后阅读时间字段
+    private String fileName; // 添加文件名字段
 
     public EPUBBook(Uri uri, String title) {
         this.uri = uri;
@@ -17,6 +18,7 @@ public class EPUBBook {
         this.currentPage = 0;
         this.totalPages = 0;
         this.lastReadTime = 0; // 默认为0
+        this.fileName = "unknown.epub"; // 默认文件名
     }
 
     public EPUBBook(Uri uri, String title, String author, int currentPage, int totalPages) {
@@ -26,6 +28,7 @@ public class EPUBBook {
         this.currentPage = currentPage;
         this.totalPages = totalPages;
         this.lastReadTime = 0; // 默认为0
+        this.fileName = "unknown.epub"; // 默认文件名
     }
 
     // 新增构造函数，包含最后阅读时间
@@ -36,6 +39,18 @@ public class EPUBBook {
         this.currentPage = currentPage;
         this.totalPages = totalPages;
         this.lastReadTime = lastReadTime;
+        this.fileName = "unknown.epub"; // 默认文件名
+    }
+    
+    // 新增构造函数，包含最后阅读时间和文件名
+    public EPUBBook(Uri uri, String title, String author, int currentPage, int totalPages, long lastReadTime, String fileName) {
+        this.uri = uri;
+        this.title = title;
+        this.author = author;
+        this.currentPage = currentPage;
+        this.totalPages = totalPages;
+        this.lastReadTime = lastReadTime;
+        this.fileName = fileName;
     }
 
     public Uri getUri() {
@@ -77,5 +92,14 @@ public class EPUBBook {
     
     public void setLastReadTime(long lastReadTime) {
         this.lastReadTime = lastReadTime;
+    }
+    
+    // 添加文件名的getter和setter方法
+    public String getFileName() {
+        return fileName;
+    }
+    
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
     }
 }

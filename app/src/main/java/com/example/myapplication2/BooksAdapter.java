@@ -73,8 +73,18 @@ public class BooksAdapter extends RecyclerView.Adapter<BooksAdapter.BookViewHold
             if (book.getTotalPages() > 0) {
                 String progressText = "阅读进度: 第" + (book.getCurrentPage() + 1) + "章/共" + book.getTotalPages() + "章";
                 bookProgress.setText(progressText);
+                // 根据阅读进度设置颜色
+                int progressPercent = (int) (((float) (book.getCurrentPage() + 1) / book.getTotalPages()) * 100);
+                if (progressPercent < 30) {
+                    bookProgress.setTextColor(itemView.getContext().getResources().getColor(android.R.color.holo_red_dark));
+                } else if (progressPercent < 70) {
+                    bookProgress.setTextColor(itemView.getContext().getResources().getColor(android.R.color.holo_orange_dark));
+                } else {
+                    bookProgress.setTextColor(itemView.getContext().getResources().getColor(android.R.color.holo_green_dark));
+                }
             } else {
                 bookProgress.setText("阅读进度: 暂无");
+                bookProgress.setTextColor(itemView.getContext().getResources().getColor(android.R.color.darker_gray));
             }
             
             // 设置最后阅读时间显示
@@ -83,12 +93,25 @@ public class BooksAdapter extends RecyclerView.Adapter<BooksAdapter.BookViewHold
                 String timeText = "最后阅读: " + sdf.format(new Date(book.getLastReadTime()));
                 lastReadTime.setText(timeText);
                 lastReadTime.setVisibility(View.VISIBLE);
+                
+                // 根据最后阅读时间设置颜色（最近阅读的用深色，较久的用浅色）
+                long timeDiff = System.currentTimeMillis() - book.getLastReadTime();
+                long daysDiff = timeDiff / (24 * 60 * 60 * 1000);
+                if (daysDiff < 1) {
+                    lastReadTime.setTextColor(itemView.getContext().getResources().getColor(android.R.color.holo_blue_dark));
+                } else if (daysDiff < 7) {
+                    lastReadTime.setTextColor(itemView.getContext().getResources().getColor(android.R.color.holo_blue_light));
+                } else {
+                    lastReadTime.setTextColor(itemView.getContext().getResources().getColor(android.R.color.darker_gray));
+                }
             } else {
-                lastReadTime.setVisibility(View.GONE);
+                lastReadTime.setText("最后阅读: 从未");
+                lastReadTime.setTextColor(itemView.getContext().getResources().getColor(android.R.color.darker_gray));
+                lastReadTime.setVisibility(View.VISIBLE);
             }
             
-            // 设置封面图标（暂时使用占位符）
-            bookCover.setImageResource(R.drawable.ic_launcher_foreground);
+            // 设置封面图标（使用书籍封面图标）
+            bookCover.setImageResource(R.drawable.ic_book_cover);
             
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
@@ -100,8 +123,9 @@ public class BooksAdapter extends RecyclerView.Adapter<BooksAdapter.BookViewHold
             itemView.setOnLongClickListener(v -> {
                 if (longClickListener != null) {
                     longClickListener.onBookLongClick(book, position);
+                    return true;
                 }
-                return true;
+                return false;
             });
         }
     }

@@ -53,84 +53,151 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 初始化视图
+        initViews();
+
+        // 初始化书籍列表
+        epubBooks = new ArrayList<>();
+        
         // 初始化SharedPreferences
         sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         
-        // 创建书籍存储目录
+        // 获取应用私有目录下的books文件夹
         booksDirectory = new File(getFilesDir(), "books");
         if (!booksDirectory.exists()) {
             booksDirectory.mkdirs();
         }
 
-        initViews();
+        // 设置RecyclerView
         setupRecyclerView();
-        setupClickListeners();
-        checkPermissions();
+
+        // 加载已保存的书籍
         loadSavedBooks();
+
+        // 检查并请求存储权限
+        checkPermissions();
     }
 
     private void initViews() {
         booksRecyclerView = findViewById(R.id.booksRecyclerView);
         addBookButton = findViewById(R.id.addBookButton);
-    }
-
-    private void setupRecyclerView() {
-        epubBooks = new ArrayList<>();
-        BooksAdapter.OnBookClickListener clickListener = new BooksAdapter.OnBookClickListener() {
-            @Override
-            public void onBookClick(EPUBBook book) {
-                openBook(book);
-            }
-        };
         
-        booksAdapter = new BooksAdapter(epubBooks, clickListener);
-        booksRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        booksRecyclerView.setAdapter(booksAdapter);
-        
-        // 注册长按事件监听器
-        booksAdapter.setOnBookLongClickListener(new BooksAdapter.OnBookLongClickListener() {
-            @Override
-            public void onBookLongClick(EPUBBook book, int position) {
-                showBookOptions(book, position);
+        addBookButton.setOnClickListener(v -> {
+            if (checkPermissions()) {
+                openFilePicker();
             }
         });
     }
 
-    private void setupClickListeners() {
-        addBookButton.setOnClickListener(v -> openFilePicker());
+    private void setupRecyclerView() {
+        booksRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        booksAdapter = new BooksAdapter(epubBooks, book -> {
+            // 处理书籍点击事件
+            openBook(book);
+        });
+        
+        // 设置长按事件监听器
+        booksAdapter.setOnBookLongClickListener((book, position) -> {
+            // 处理书籍长按事件，显示删除选项
+            showDeleteDialog(book, position);
+        });
+        
+        booksRecyclerView.setAdapter(booksAdapter);
+        
+        // 添加分割线
+        booksRecyclerView.addItemDecoration(new BookItemDecoration(this));
     }
 
-    private void checkPermissions() {
+    // 显示删除对话框
+    private void showDeleteDialog(EPUBBook book, int position) {
+        new AlertDialog.Builder(this)
+                .setTitle("删除书籍")
+                .setMessage("确定要删除《" + book.getTitle() + "》吗？")
+                .setPositiveButton("删除", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        deleteBook(book, position);
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    // 删除书籍
+    private void deleteBook(EPUBBook book, int position) {
+        // 从列表中移除
+        epubBooks.remove(position);
+        booksAdapter.notifyItemRemoved(position);
+        
+        // 删除存储的文件
+        File bookFile = new File(booksDirectory, book.getFileName());
+        if (bookFile.exists()) {
+            bookFile.delete();
+        }
+        
+        // 保存更新后的书籍列表
+        saveBooks();
+        
+        Toast.makeText(this, "书籍已删除", Toast.LENGTH_SHORT).show();
+    }
+
+    // 打开书籍
+    private void openBook(EPUBBook book) {
+        // 更新最后阅读时间
+        book.setLastReadTime(System.currentTimeMillis());
+        sortBooksByLastReadTime();
+        booksAdapter.notifyDataSetChanged();
+        saveBooks();
+        
+        Intent intent = new Intent(this, ReadingActivity.class);
+        intent.putExtra("book_uri", book.getUri().toString());
+        intent.putExtra("book_title", book.getTitle());
+        startActivity(intent);
+    }
+    
+    // 按最后阅读时间排序书籍
+    private void sortBooksByLastReadTime() {
+        Collections.sort(epubBooks, new Comparator<EPUBBook>() {
+            @Override
+            public int compare(EPUBBook book1, EPUBBook book2) {
+                // 按最后阅读时间降序排列（最近阅读的在前）
+                return Long.compare(book2.getLastReadTime(), book1.getLastReadTime());
+            }
+        });
+    }
+
+    private boolean checkPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
                     != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                         PERMISSION_REQUEST_CODE);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openFilePicker();
+            } else {
+                Toast.makeText(this, "需要存储权限才能添加书籍", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
     private void openFilePicker() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*");
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        String[] mimeTypes = {"application/epub+zip"};
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
-        startActivityForResult(Intent.createChooser(intent, "选择EPUB文件"), FILE_PICKER_REQUEST_CODE);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // 权限已授予
-            } else {
-                Toast.makeText(this, "需要存储权限才能访问EPUB文件", Toast.LENGTH_SHORT).show();
-            }
-        }
+        intent.setType("*/*");
+        String[] mimetypes = {"application/epub+zip", "application/x-epub"};
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
+        startActivityForResult(intent, FILE_PICKER_REQUEST_CODE);
     }
 
     @Override
@@ -140,158 +207,120 @@ public class MainActivity extends AppCompatActivity {
             if (data != null) {
                 Uri uri = data.getData();
                 if (uri != null) {
-                    addBookToList(uri);
+                    handleSelectedFile(uri);
                 }
             }
         }
     }
 
-    private void addBookToList(Uri uri) {
+    private void handleSelectedFile(Uri uri) {
         try {
-            String fileName = getFileName(uri);
+            ContentResolver contentResolver = getContentResolver();
+            Cursor cursor = contentResolver.query(uri, null, null, null, null);
+            String fileName = "unknown.epub";
             
-            // 检查书籍是否已经存在于列表中
-            if (isBookAlreadyAdded(fileName)) {
-                Toast.makeText(this, "书籍已存在: " + fileName, Toast.LENGTH_SHORT).show();
+            if (cursor != null) {
+                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (nameIndex != -1 && cursor.moveToFirst()) {
+                    fileName = cursor.getString(nameIndex);
+                }
+                cursor.close();
+            }
+            
+            // 检查书籍是否已存在
+            boolean bookExists = false;
+            for (EPUBBook book : epubBooks) {
+                if (book.getFileName().equals(fileName)) {
+                    bookExists = true;
+                    break;
+                }
+            }
+            
+            if (bookExists) {
+                Toast.makeText(this, "书籍已存在", Toast.LENGTH_SHORT).show();
                 return;
             }
             
-            // 将书籍文件复制到应用私有目录
-            String savedFileName = copyBookToPrivateStorage(uri, fileName);
+            // 复制文件到应用私有目录
+            File destFile = new File(booksDirectory, fileName);
+            copyFile(uri, destFile);
             
-            // 创建本地文件Uri
-            File bookFile = new File(booksDirectory, savedFileName);
-            Uri localUri = Uri.fromFile(bookFile);
-            
-            // 创建EPUBBook对象，包含作者和进度信息
-            EPUBBook book = new EPUBBook(localUri, fileName, "未知作者", 0, 0);
+            // 创建EPUBBook对象
+            EPUBBook book = new EPUBBook(uri, fileName, "未知作者", 0, 0, System.currentTimeMillis(), fileName);
             epubBooks.add(book);
-            booksAdapter.notifyItemInserted(epubBooks.size() - 1);
-            saveBooks(); // 保存书籍列表
-            Toast.makeText(this, "已添加书籍: " + fileName, Toast.LENGTH_SHORT).show();
-        } catch (IOException e) {
-            Toast.makeText(this, "添加书籍失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
-    }
-    
-    // 检查书籍是否已经添加
-    private boolean isBookAlreadyAdded(String fileName) {
-        for (EPUBBook book : epubBooks) {
-            if (book.getTitle().equals(fileName)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private String getFileName(Uri uri) {
-        String fileName = System.currentTimeMillis() + ".epub"; // 默认文件名
-        ContentResolver contentResolver = getContentResolver();
-        Cursor cursor = contentResolver.query(uri, null, null, null, null);
-        if (cursor != null) {
-            int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-            if (nameIndex != -1 && cursor.moveToFirst()) {
-                fileName = cursor.getString(nameIndex);
-            }
-            cursor.close();
-        }
-        return fileName;
-    }
-
-    private String copyBookToPrivateStorage(Uri sourceUri, String fileName) throws IOException {
-        // 确保文件名唯一
-        String savedFileName = fileName;
-        File targetFile = new File(booksDirectory, savedFileName);
-        int counter = 1;
-        
-        while (targetFile.exists()) {
-            int dotIndex = fileName.lastIndexOf('.');
-            String nameWithoutExtension = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
-            String extension = (dotIndex == -1) ? "" : fileName.substring(dotIndex);
-            savedFileName = nameWithoutExtension + "_" + counter + extension;
-            targetFile = new File(booksDirectory, savedFileName);
-            counter++;
-        }
-        
-        // 复制文件
-        ContentResolver contentResolver = getContentResolver();
-        ParcelFileDescriptor parcelFileDescriptor = contentResolver.openFileDescriptor(sourceUri, "r");
-        if (parcelFileDescriptor != null) {
-            FileInputStream inputStream = new FileInputStream(parcelFileDescriptor.getFileDescriptor());
-            FileOutputStream outputStream = new FileOutputStream(targetFile);
             
-            FileChannel inChannel = inputStream.getChannel();
-            FileChannel outChannel = outputStream.getChannel();
-            
-            inChannel.transferTo(0, inChannel.size(), outChannel);
-            
-            inputStream.close();
-            outputStream.close();
-            parcelFileDescriptor.close();
-        }
-        
-        return savedFileName;
-    }
-
-    private void openBook(EPUBBook book) {
-        // 检查本地文件是否仍然存在
-        if (isLocalFileValid(book.getUri())) {
-            // 更新书籍的最后阅读时间
-            book.setLastReadTime(System.currentTimeMillis());
-            // 重新排序并刷新列表
+            // 更新列表显示
             sortBooksByLastReadTime();
-            saveBooks(); // 保存更新后的书籍列表
+            booksAdapter.notifyDataSetChanged();
             
-            Intent intent = new Intent(this, ReadingActivity.class);
-            intent.putExtra("book_uri", book.getUri().toString());
-            intent.putExtra("book_title", book.getTitle());
-            startActivity(intent);
-        } else {
-            Toast.makeText(this, "书籍文件不存在，请重新添加该书籍", Toast.LENGTH_LONG).show();
-            // 从列表中移除无效的书籍
-            removeInvalidBook(book);
-        }
-    }
-
-    // 检查本地文件是否有效
-    private boolean isLocalFileValid(Uri uri) {
-        try {
-            File file = new File(uri.getPath());
-            return file.exists() && file.isFile() && file.canRead();
+            // 保存书籍列表
+            saveBooks();
+            
+            Toast.makeText(this, "书籍添加成功", Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
-            return false;
+            e.printStackTrace();
+            Toast.makeText(this, "添加书籍失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    // 移除无效的书籍
-    private void removeInvalidBook(EPUBBook book) {
-        Iterator<EPUBBook> iterator = epubBooks.iterator();
-        while (iterator.hasNext()) {
-            EPUBBook currentBook = iterator.next();
-            if (currentBook.getUri().equals(book.getUri())) {
-                // 删除本地文件
-                File bookFile = new File(currentBook.getUri().getPath());
-                if (bookFile.exists()) {
-                    bookFile.delete();
+    private void copyFile(Uri sourceUri, File destFile) throws IOException {
+        ParcelFileDescriptor sourcePFD = getContentResolver().openFileDescriptor(sourceUri, "r");
+        FileInputStream inputStream = new FileInputStream(sourcePFD.getFileDescriptor());
+        FileOutputStream outputStream = new FileOutputStream(destFile);
+        FileChannel sourceChannel = inputStream.getChannel();
+        FileChannel destChannel = outputStream.getChannel();
+        sourceChannel.transferTo(0, sourceChannel.size(), destChannel);
+        sourceChannel.close();
+        destChannel.close();
+        inputStream.close();
+        outputStream.close();
+        sourcePFD.close();
+    }
+
+    private void loadSavedBooks() {
+        String booksJson = sharedPreferences.getString(BOOK_LIST_KEY, "");
+        if (!booksJson.isEmpty()) {
+            epubBooks.clear();
+            String[] bookStrings = booksJson.split(";");
+            for (String bookString : bookStrings) {
+                if (!bookString.isEmpty()) {
+                    String[] parts = bookString.split("\\|");
+                    if (parts.length >= 6) {
+                        try {
+                            Uri uri = Uri.parse(parts[0]);
+                            String title = parts[1];
+                            String author = parts[2];
+                            int currentPage = Integer.parseInt(parts[3]);
+                            int totalPages = Integer.parseInt(parts[4]);
+                            long lastReadTime = Long.parseLong(parts[5]);
+                            String fileName = (parts.length > 6) ? parts[6] : "unknown.epub";
+                            
+                            // 检查文件是否存在
+                            File bookFile = new File(booksDirectory, fileName);
+                            if (bookFile.exists()) {
+                                EPUBBook book = new EPUBBook(uri, title, author, currentPage, totalPages, lastReadTime, fileName);
+                                epubBooks.add(book);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
-                
-                iterator.remove();
-                saveBooks(); // 重新保存书籍列表
-                booksAdapter.notifyDataSetChanged();
-                break;
             }
         }
+        
+        // 按最后阅读时间排序
+        sortBooksByLastReadTime();
+        
+        if (booksAdapter != null) {
+            booksAdapter.notifyDataSetChanged();
+        }
     }
 
-    // 保存书籍列表到SharedPreferences
     private void saveBooks() {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        StringBuilder bookListString = new StringBuilder();
-        
-        for (int i = 0; i < epubBooks.size(); i++) {
-            EPUBBook book = epubBooks.get(i);
-            // 格式：uri|title|author|currentPage|totalPages|lastReadTime
-            bookListString.append(book.getUri().toString())
+        StringBuilder booksStringBuilder = new StringBuilder();
+        for (EPUBBook book : epubBooks) {
+            booksStringBuilder.append(book.getUri().toString())
                     .append("|")
                     .append(book.getTitle())
                     .append("|")
@@ -301,152 +330,20 @@ public class MainActivity extends AppCompatActivity {
                     .append("|")
                     .append(book.getTotalPages())
                     .append("|")
-                    .append(book.getLastReadTime()); // 添加最后阅读时间
-            
-            //如果不是最后一个元素，添加分隔符
-            if (i < epubBooks.size() - 1) {
-                bookListString.append(";;");
-            }
+                    .append(book.getLastReadTime())
+                    .append("|")
+                    .append(book.getFileName())
+                    .append(";");
         }
         
-        editor.putString(BOOK_LIST_KEY, bookListString.toString());
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(BOOK_LIST_KEY, booksStringBuilder.toString());
         editor.apply();
     }
 
-    // 从SharedPreferences加载书籍列表
-    private void loadSavedBooks() {
-        String bookListString = sharedPreferences.getString(BOOK_LIST_KEY, "");
-        if (!bookListString.isEmpty()) {
-            epubBooks.clear();
-            String[] bookStrings = bookListString.split(";;");
-            
-            for (String bookString : bookStrings) {
-                String[] parts = bookString.split("\\|", -1); // 使用-1限制避免丢弃空值
-                if (parts.length >= 5) {
-                    Uri uri = Uri.parse(parts[0]);
-                    String title = parts[1];
-                    String author = parts[2];
-                    int currentPage = 0;
-                    int totalPages = 0;
-                    long lastReadTime = 0; // 默认最后阅读时间为0
-                    
-                    try {
-                        currentPage = Integer.parseInt(parts[3]);
-                        totalPages = Integer.parseInt(parts[4]);
-                        // 如果有第6个部分，则解析最后阅读时间
-                        if (parts.length >= 6) {
-                            lastReadTime = Long.parseLong(parts[5]);
-                        }
-                    } catch (NumberFormatException e) {
-                        // 如果解析失败，使用默认值
-                        currentPage = 0;
-                        totalPages = 0;
-                        lastReadTime = 0;
-                    }
-                    
-                    // 检查本地文件是否仍然存在
-                    if (isLocalFileValid(uri)) {
-                        // 更新当前页和总页数
-                        currentPage = getBookCurrentPage(uri);
-                        totalPages = getBookTotalChapters(uri);
-                        epubBooks.add(new EPUBBook(uri, title, author, currentPage, totalPages, lastReadTime));
-                    } else {
-                        // 删除不存在的文件对应的条目
-                        removeInvalidBookEntry(uri);
-                    }
-                }
-            }
-            
-            // 按最后阅读时间排序
-            sortBooksByLastReadTime();
-            
-            booksAdapter.notifyDataSetChanged();
-        }
-    }
-    
-    // 获取书籍的总章节数
-    private int getBookTotalChapters(Uri bookUri) {
-        SharedPreferences prefs = getSharedPreferences("ReadingProgress", MODE_PRIVATE);
-        return prefs.getInt(bookUri.toString() + "_total", 0);
-    }
-    
-    // 获取书籍的当前阅读进度
-    private int getBookCurrentPage(Uri bookUri) {
-        SharedPreferences prefs = getSharedPreferences("ReadingProgress", MODE_PRIVATE);
-        return prefs.getInt(bookUri.toString(), 0);
-    }
-    
-    // 移除无效书籍条目（不删除文件）
-    private void removeInvalidBookEntry(Uri uri) {
-        Iterator<EPUBBook> iterator = epubBooks.iterator();
-        while (iterator.hasNext()) {
-            EPUBBook book = iterator.next();
-            if (book.getUri().equals(uri)) {
-                iterator.remove();
-                break;
-            }
-        }
-    }
-    
-    // 显示书籍选项对话框
-    private void showBookOptions(EPUBBook book, int position) {
-        // 创建自定义列表项
-        CharSequence[] options = {"删除"};
-        
-        // 创建自定义样式的对话框
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomDialogTheme);
-        builder.setTitle("书籍选项")
-                .setItems(options, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        if (which == 0) { // 删除选项
-                            deleteBook(book, position);
-                        }
-                    }
-                })
-                .setNegativeButton("取消", (dialog, which) -> dialog.dismiss());
-        
-        // 创建并显示对话框
-        AlertDialog dialog = builder.create();
-        dialog.show();
-    }
-    
-    // 删除书籍
-    private void deleteBook(EPUBBook book, int position) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("确认删除")
-                .setMessage("确定要删除书籍 \"" + book.getTitle() + "\" 吗？")
-                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // 删除本地文件
-                        File bookFile = new File(book.getUri().getPath());
-                        if (bookFile.exists()) {
-                            bookFile.delete();
-                        }
-                        
-                        // 从列表中移除
-                        epubBooks.remove(position);
-                        booksAdapter.notifyItemRemoved(position);
-                        saveBooks(); // 重新保存书籍列表
-                        
-                        Toast.makeText(MainActivity.this, "书籍已删除", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("取消", null)
-                .show();
-    }
-    
-    // 按最后阅读时间排序书籍列表
-    private void sortBooksByLastReadTime() {
-        // 使用Collections.sort以确保兼容API 21
-        Collections.sort(epubBooks, new Comparator<EPUBBook>() {
-            @Override
-            public int compare(EPUBBook book1, EPUBBook book2) {
-                // 按最后阅读时间降序排列（最近阅读的在前）
-                return Long.compare(book2.getLastReadTime(), book1.getLastReadTime());
-            }
-        });
-        booksAdapter.notifyDataSetChanged();
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadSavedBooks();
     }
 }
