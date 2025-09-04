@@ -41,9 +41,9 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation(libs.recyclerview)
-    implementation(files("C:/Users/11739/Downloads/epublib-core-3.1.jar"))
+    implementation(files("D:/AndroidStudioProjects/epublib-core-3.1.jar"))
     implementation(libs.slf4j.simple)
-    
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

@@ -27,8 +27,6 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
 import java.io.InputStream;
 import java.util.List;
 
