@@ -1,8 +1,8 @@
 package com.example.myapplication2;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Html;
@@ -10,7 +10,6 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ScrollView;
@@ -22,7 +21,6 @@ import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.InputStream;
@@ -31,7 +29,6 @@ import java.util.List;
 import nl.siegmann.epublib.domain.Book;
 import nl.siegmann.epublib.domain.Spine;
 import nl.siegmann.epublib.domain.SpineReference;
-import nl.siegmann.epublib.domain.TOCReference;
 import nl.siegmann.epublib.domain.TableOfContents;
 import nl.siegmann.epublib.epub.EpubReader;
 
@@ -42,7 +39,6 @@ public class ReadingActivity extends AppCompatActivity {
     private static final String LINE_SPACING_PREF = "lineSpacing";
     private static final String LETTER_SPACING_PREF = "letterSpacing";
     private static final String BACKGROUND_COLOR_PREF = "backgroundColor"; // 添加背景色偏好键
-    private static final int TABLE_OF_CONTENTS_REQUEST = 1;
     private ScrollView contentScrollView;
     private TextView contentTextView;
     private View menuLayer;
@@ -136,19 +132,16 @@ public class ReadingActivity extends AppCompatActivity {
     private void initActivityResultLauncher() {
         tocActivityResultLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
-                new ActivityResultCallback<ActivityResult>() {
-                    @Override
-                    public void onActivityResult(ActivityResult result) {
-                        if (result.getResultCode() == RESULT_OK) {
-                            Intent data = result.getData();
-                            if (data != null) {
-                                int chapterPosition = data.getIntExtra("chapter_position", 0);
-                                String chapterTitle = data.getStringExtra("chapter_title");
-                                Log.d(TAG, "onActivityResult: chapterPosition=" + chapterPosition + ", chapterTitle=" + chapterTitle);
-                                
-                                // 跳转到指定章节
-                                goToChapter(chapterPosition);
-                            }
+                result -> {
+                    if (result.getResultCode() == RESULT_OK) {
+                        Intent data = result.getData();
+                        if (data != null) {
+                            int chapterPosition = data.getIntExtra("chapter_position", 0);
+                            String chapterTitle = data.getStringExtra("chapter_title");
+                            Log.d(TAG, "onActivityResult: chapterPosition=" + chapterPosition + ", chapterTitle=" + chapterTitle);
+
+                            // 跳转到指定章节
+                            goToChapter(chapterPosition);
                         }
                     }
                 });
@@ -209,11 +202,9 @@ public class ReadingActivity extends AppCompatActivity {
         contentTextView.setLineSpacing(
             TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, currentLineSpacing, getResources().getDisplayMetrics()), 
             1f);
-        
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            contentTextView.setLetterSpacing(currentLetterSpacing);
-        }
-        
+
+        contentTextView.setLetterSpacing(currentLetterSpacing);
+
         // 应用背景色
         contentScrollView.setBackgroundColor(currentBackgroundColor);
         
@@ -251,6 +242,7 @@ public class ReadingActivity extends AppCompatActivity {
             private float startX, startY;
             private long startTime;
 
+            @SuppressLint("ClickableViewAccessibility")
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
@@ -376,6 +368,7 @@ public class ReadingActivity extends AppCompatActivity {
         });
     }
 
+    @SuppressLint("SetTextI18n")
     private void loadBookContent() {
         Log.d(TAG, "loadBookContent: Starting to load book content");
         // 显示加载提示
@@ -441,6 +434,7 @@ public class ReadingActivity extends AppCompatActivity {
         }
     }
     
+    @SuppressLint("SetTextI18n")
     private void loadPageContent(int pageIndex, boolean preserveScrollPosition) {
         Log.d(TAG, "loadPageContent: pageIndex=" + pageIndex + ", preserveScrollPosition=" + preserveScrollPosition);
         if (spineReferences == null || pageIndex < 0 || pageIndex >= spineReferences.size()) {
@@ -575,6 +569,7 @@ public class ReadingActivity extends AppCompatActivity {
     }
     
     // 更新字体设置显示
+    @SuppressLint("SetTextI18n")
     private void updateFontSettingsDisplay() {
         tvFontSize.setText("字号: " + currentTextSize);
         tvLineSpacing.setText("行距: " + currentLineSpacing + "dp");
@@ -624,9 +619,7 @@ public class ReadingActivity extends AppCompatActivity {
     // 增大字距
     private void increaseLetterSpacing() {
         currentLetterSpacing += 0.05f;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            contentTextView.setLetterSpacing(currentLetterSpacing);
-        }
+        contentTextView.setLetterSpacing(currentLetterSpacing);
         updateFontSettingsDisplay();
         saveUserSettings(); // 保存设置
         Log.d(TAG, "increaseLetterSpacing: Letter spacing increased to " + currentLetterSpacing);
@@ -636,9 +629,7 @@ public class ReadingActivity extends AppCompatActivity {
     private void decreaseLetterSpacing() {
         if (currentLetterSpacing > -0.5f) { // 限制最小字距
             currentLetterSpacing -= 0.05f;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                contentTextView.setLetterSpacing(currentLetterSpacing);
-            }
+            contentTextView.setLetterSpacing(currentLetterSpacing);
             updateFontSettingsDisplay();
             saveUserSettings(); // 保存设置
             Log.d(TAG, "decreaseLetterSpacing: Letter spacing decreased to " + currentLetterSpacing);
@@ -760,16 +751,13 @@ public class ReadingActivity extends AppCompatActivity {
         
         // 使用颜色选择器
         ColorPickerDialog colorPickerDialog = new ColorPickerDialog(this, currentBackgroundColor);
-        colorPickerDialog.setOnColorSelectedListener(new ColorPickerDialog.OnColorSelectedListener() {
-            @Override
-            public void onColorSelected(int color) {
-                // 更新背景色
-                currentBackgroundColor = color;
-                updateBackgroundColor();
-                // 保存背景色设置
-                saveBackgroundColor();
-                Log.d(TAG, "Background color changed to: #" + Integer.toHexString(color));
-            }
+        colorPickerDialog.setOnColorSelectedListener(color -> {
+            // 更新背景色
+            currentBackgroundColor = color;
+            updateBackgroundColor();
+            // 保存背景色设置
+            saveBackgroundColor();
+            Log.d(TAG, "Background color changed to: #" + Integer.toHexString(color));
         });
         colorPickerDialog.show();
     }
