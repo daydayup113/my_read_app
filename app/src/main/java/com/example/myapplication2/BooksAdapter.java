@@ -1,5 +1,6 @@
 package com.example.myapplication2;
 
+import android.annotation.SuppressLint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -7,7 +8,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.SimpleDateFormat;
@@ -16,8 +16,8 @@ import java.util.List;
 import java.util.Locale;
 
 public class BooksAdapter extends RecyclerView.Adapter<BooksAdapter.BookViewHolder> {
-    private List<EPUBBook> books;
-    private OnBookClickListener listener;
+    private final List<EPUBBook> books;
+    private final OnBookClickListener listener;
     private OnBookLongClickListener longClickListener;
 
     public BooksAdapter(List<EPUBBook> books, OnBookClickListener listener) {
@@ -50,11 +50,11 @@ public class BooksAdapter extends RecyclerView.Adapter<BooksAdapter.BookViewHold
     }
 
     public class BookViewHolder extends RecyclerView.ViewHolder {
-        private ImageView bookCover;
-        private TextView bookTitle;
-        private TextView bookAuthor;
-        private TextView bookProgress;
-        private TextView lastReadTime; // 添加最后阅读时间显示
+        private final ImageView bookCover;
+        private final TextView bookTitle;
+        private final TextView bookAuthor;
+        private final TextView bookProgress;
+        private final TextView lastReadTime; // 添加最后阅读时间显示
 
         public BookViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -65,6 +65,7 @@ public class BooksAdapter extends RecyclerView.Adapter<BooksAdapter.BookViewHold
             lastReadTime = itemView.findViewById(R.id.lastReadTime); // 初始化最后阅读时间显示
         }
 
+        @SuppressLint("SetTextI18n")
         public void bind(EPUBBook book, int position) {
             bookTitle.setText(book.getTitle());
             bookAuthor.setText("作者: " + book.getAuthor());

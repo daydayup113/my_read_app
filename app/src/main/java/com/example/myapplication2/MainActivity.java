@@ -1,8 +1,8 @@
 package com.example.myapplication2;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.ContentResolver;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -12,7 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
-import android.view.View;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -31,11 +31,10 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQUEST_CODE = 1;
     private static final int FILE_PICKER_REQUEST_CODE = 2;
     private static final String PREFS_NAME = "BookList";
@@ -44,7 +43,6 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView booksRecyclerView;
     private BooksAdapter booksAdapter;
     private List<EPUBBook> epubBooks;
-    private Button addBookButton;
     private SharedPreferences sharedPreferences;
     private File booksDirectory;
 
@@ -80,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initViews() {
         booksRecyclerView = findViewById(R.id.booksRecyclerView);
-        addBookButton = findViewById(R.id.addBookButton);
+        Button addBookButton = findViewById(R.id.addBookButton);
         
         addBookButton.setOnClickListener(v -> {
             if (checkPermissions()) {
@@ -91,16 +89,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupRecyclerView() {
         booksRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        booksAdapter = new BooksAdapter(epubBooks, book -> {
-            // 处理书籍点击事件
-            openBook(book);
-        });
+        // 处理书籍点击事件
+        booksAdapter = new BooksAdapter(epubBooks, this::openBook);
         
         // 设置长按事件监听器
-        booksAdapter.setOnBookLongClickListener((book, position) -> {
-            // 处理书籍长按事件，显示删除选项
-            showDeleteDialog(book, position);
-        });
+        // 处理书籍长按事件，显示删除选项
+        booksAdapter.setOnBookLongClickListener(this::showDeleteDialog);
         
         booksRecyclerView.setAdapter(booksAdapter);
         
@@ -113,12 +107,7 @@ public class MainActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("删除书籍")
                 .setMessage("确定要删除《" + book.getTitle() + "》吗？")
-                .setPositiveButton("删除", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        deleteBook(book, position);
-                    }
-                })
+                .setPositiveButton("删除", (dialog, which) -> deleteBook(book, position))
                 .setNegativeButton("取消", null)
                 .show();
     }
@@ -142,6 +131,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // 打开书籍
+    @SuppressLint("NotifyDataSetChanged")
     private void openBook(EPUBBook book) {
         // 更新最后阅读时间
         book.setLastReadTime(System.currentTimeMillis());
@@ -157,12 +147,9 @@ public class MainActivity extends AppCompatActivity {
     
     // 按最后阅读时间排序书籍
     private void sortBooksByLastReadTime() {
-        Collections.sort(epubBooks, new Comparator<EPUBBook>() {
-            @Override
-            public int compare(EPUBBook book1, EPUBBook book2) {
-                // 按最后阅读时间降序排列（最近阅读的在前）
-                return Long.compare(book2.getLastReadTime(), book1.getLastReadTime());
-            }
+        Collections.sort(epubBooks, (book1, book2) -> {
+            // 按最后阅读时间降序排列（最近阅读的在前）
+            return Long.compare(book2.getLastReadTime(), book1.getLastReadTime());
         });
     }
 
@@ -213,6 +200,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private void handleSelectedFile(Uri uri) {
         try {
             ContentResolver contentResolver = getContentResolver();
@@ -258,13 +246,14 @@ public class MainActivity extends AppCompatActivity {
             
             Toast.makeText(this, "书籍添加成功", Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.d(TAG,"错误日志====handleSelectedFile 249");
             Toast.makeText(this, "添加书籍失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
     private void copyFile(Uri sourceUri, File destFile) throws IOException {
         ParcelFileDescriptor sourcePFD = getContentResolver().openFileDescriptor(sourceUri, "r");
+        assert sourcePFD != null;
         FileInputStream inputStream = new FileInputStream(sourcePFD.getFileDescriptor());
         FileOutputStream outputStream = new FileOutputStream(destFile);
         FileChannel sourceChannel = inputStream.getChannel();
@@ -277,6 +266,7 @@ public class MainActivity extends AppCompatActivity {
         sourcePFD.close();
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private void loadSavedBooks() {
         String booksJson = sharedPreferences.getString(BOOK_LIST_KEY, "");
         if (!booksJson.isEmpty()) {
@@ -302,7 +292,7 @@ public class MainActivity extends AppCompatActivity {
                                 epubBooks.add(book);
                             }
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            Log.d(TAG,"错误日志====handleSelectedFile 249"+e);
                         }
                     }
                 }

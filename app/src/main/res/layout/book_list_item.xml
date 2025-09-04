@@ -22,7 +22,7 @@
             android:layout_marginEnd="12dp"
             android:background="@drawable/book_cover_background"
             android:scaleType="centerCrop"
-            android:contentDescription="书籍封面"
+            android:contentDescription="@string/BookCovers"
             android:src="@drawable/ic_book_cover" />
 
         <!-- 书籍信息 -->

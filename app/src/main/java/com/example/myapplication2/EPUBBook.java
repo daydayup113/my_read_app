@@ -3,8 +3,8 @@ package com.example.myapplication2;
 import android.net.Uri;
 
 public class EPUBBook {
-    private Uri uri;
-    private String title;
+    private final Uri uri;
+    private final String title;
     private String author;
     private int currentPage;
     private int totalPages;

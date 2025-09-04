@@ -6,28 +6,27 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.view.View;
 
-import androidx.annotation.ColorRes;
+import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 public class BookItemDecoration extends RecyclerView.ItemDecoration {
-    private final Paint paint;
     private final int dividerHeight;
 
     public BookItemDecoration(Context context) {
-        paint = new Paint();
+        Paint paint = new Paint();
         paint.setColor(ContextCompat.getColor(context, android.R.color.transparent));
         dividerHeight = context.getResources().getDimensionPixelSize(R.dimen.book_item_divider_height);
     }
 
     @Override
-    public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
+    public void getItemOffsets(@NonNull Rect outRect, @NonNull View view, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
         super.getItemOffsets(outRect, view, parent, state);
         outRect.bottom = dividerHeight;
     }
 
     @Override
-    public void onDraw(Canvas c, RecyclerView parent, RecyclerView.State state) {
+    public void onDraw(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
         super.onDraw(c, parent, state);
         // 由于我们使用了CardView，这里不需要绘制额外的分割线
     }

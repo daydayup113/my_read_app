@@ -9,4 +9,5 @@
     <string name="BOOK_CONTENT">书籍内容将显示在这里</string>
     <string name="PREVIOUS">上一页</string>
     <string name="NEXT">下一页</string>
+    <string name="BookCovers">书籍封面</string>
 </resources>
