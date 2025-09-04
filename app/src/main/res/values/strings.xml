@@ -12,4 +12,17 @@
     <string name="BookCovers">书籍封面</string>
     <string name="EPUBRead">EPUB 阅读器</string>
     <string name="AddEPUBFile">添加 EPUB 文件</string>
+    <string name="FONTSET">字体设置</string>
+    <string name="REDUCE_FONTS">减小字体</string>
+    <string name="FONT_SIZE">字号</string>
+    <string name="DEFAULT_SIZE">18</string>
+    <string name="INCREASE_FONT_SIZE">增大字体</string>
+    <string name="REDUCE_KERNING">减小字距</string>
+    <string name="KERNING">字距</string>
+    <string name="DEFAULT_KERNING">0</string>
+    <string name="INCREASE_WORD_SPACING">增大字距</string>
+    <string name="REDUCE_LINE_SPACING">减小行距</string>
+    <string name="LINE_SPACING">行距</string>
+    <string name="DEFAULT_LINE_SPACING">4dp</string>
+    <string name="INCREASE_LINE_SPACING">增大行距</string>
 </resources>

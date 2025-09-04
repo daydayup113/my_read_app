@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -32,7 +33,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="字体设置"
+                android:text="@string/FONTSET"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="#212121"
@@ -83,7 +84,7 @@
                                     android:layout_width="36dp"
                                     android:layout_height="36dp"
                                     android:src="@drawable/ic_remove"
-                                    android:contentDescription="减小字体"
+                                    android:contentDescription="@string/REDUCE_FONTS"
                                     android:background="@drawable/button_background"
                                     android:scaleType="centerInside"
                                     android:padding="4dp" />
@@ -100,16 +101,17 @@
                                     <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="字号"
+                                    android:text="@string/FONT_SIZE"
                                     android:textSize="8sp"
                                     android:textColor="#757575"
-                                    android:layout_marginBottom="1dp" />
+                                    android:layout_marginBottom="1dp"
+                                        tools:ignore="SmallSp,TooDeepLayout" />
 
                                     <TextView
                                         android:id="@+id/tv_font_size"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="18"
+                                        android:text="@string/DEFAULT_SIZE"
                                         android:textSize="12sp"
                                         android:textStyle="bold"
                                         android:textColor="#212121" />
@@ -121,7 +123,7 @@
                                     android:layout_width="36dp"
                                     android:layout_height="36dp"
                                     android:src="@drawable/ic_add"
-                                    android:contentDescription="增大字体"
+                                    android:contentDescription="@string/INCREASE_FONT_SIZE"
                                     android:background="@drawable/button_background"
                                     android:scaleType="centerInside"
                                     android:padding="4dp" />
@@ -154,7 +156,7 @@
                                     android:layout_width="36dp"
                                     android:layout_height="36dp"
                                     android:src="@drawable/ic_remove"
-                                    android:contentDescription="减小字距"
+                                    android:contentDescription="@string/REDUCE_KERNING"
                                     android:background="@drawable/button_background"
                                     android:scaleType="centerInside"
                                     android:padding="4dp" />
@@ -171,16 +173,17 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="字距"
+                                        android:text="@string/KERNING"
                                         android:textSize="8sp"
                                         android:textColor="#757575"
-                                        android:layout_marginBottom="1dp" />
+                                        android:layout_marginBottom="1dp"
+                                        tools:ignore="SmallSp" />
 
                                     <TextView
                                         android:id="@+id/tv_letter_spacing"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="0"
+                                        android:text="@string/DEFAULT_KERNING"
                                         android:textSize="12sp"
                                         android:textStyle="bold"
                                         android:textColor="#212121" />
@@ -192,7 +195,7 @@
                                     android:layout_width="36dp"
                                     android:layout_height="36dp"
                                     android:src="@drawable/ic_add"
-                                    android:contentDescription="增大字距"
+                                    android:contentDescription="@string/INCREASE_WORD_SPACING"
                                     android:background="@drawable/button_background"
                                     android:scaleType="centerInside"
                                     android:padding="4dp" />
@@ -224,7 +227,7 @@
                                 android:layout_width="36dp"
                                 android:layout_height="36dp"
                                 android:src="@drawable/ic_remove"
-                                android:contentDescription="减小行距"
+                                android:contentDescription="@string/REDUCE_LINE_SPACING"
                                 android:background="@drawable/button_background"
                                 android:scaleType="centerInside"
                                 android:padding="4dp" />
@@ -241,16 +244,17 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="行距"
+                                    android:text="@string/LINE_SPACING"
                                     android:textSize="8sp"
                                     android:textColor="#757575"
-                                    android:layout_marginBottom="1dp" />
+                                    android:layout_marginBottom="1dp"
+                                    tools:ignore="SmallSp" />
 
                                 <TextView
                                     android:id="@+id/tv_line_spacing"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="4dp"
+                                    android:text="@string/DEFAULT_LINE_SPACING"
                                     android:textSize="12sp"
                                     android:textStyle="bold"
                                     android:textColor="#212121" />
@@ -262,7 +266,7 @@
                                 android:layout_width="36dp"
                                 android:layout_height="36dp"
                                 android:src="@drawable/ic_add"
-                                android:contentDescription="增大行距"
+                                android:contentDescription="@string/INCREASE_LINE_SPACING"
                                 android:background="@drawable/button_background"
                                 android:scaleType="centerInside"
                                 android:padding="4dp" />
