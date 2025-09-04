@@ -15,7 +15,6 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.ScaleAnimation;
 import android.view.animation.TranslateAnimation;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -26,8 +25,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.InputStream;
 import java.util.List;
@@ -81,12 +78,12 @@ public class ReadingActivity extends AppCompatActivity {
     private int currentBackgroundColor = 0xFFADD8E6; // 默认背景色 (浅蓝色)
     
     // 字体设置层中的控件
-    private FloatingActionButton btnFontSizeDecrease;
-    private FloatingActionButton btnFontSizeIncrease;
-    private FloatingActionButton btnLineSpacingDecrease;
-    private FloatingActionButton btnLineSpacingIncrease;
-    private FloatingActionButton btnLetterSpacingDecrease;
-    private FloatingActionButton btnLetterSpacingIncrease;
+    private ImageButton btnFontSizeDecrease;
+    private ImageButton btnFontSizeIncrease;
+    private ImageButton btnLineSpacingDecrease;
+    private ImageButton btnLineSpacingIncrease;
+    private ImageButton btnLetterSpacingDecrease;
+    private ImageButton btnLetterSpacingIncrease;
     private TextView tvFontSize;
     private TextView tvLineSpacing;
     private TextView tvLetterSpacing;
@@ -179,12 +176,12 @@ public class ReadingActivity extends AppCompatActivity {
         
         // 初始化字体设置层中的控件
         if (fontSettingsLayer != null) {
-            btnFontSizeDecrease = (FloatingActionButton) fontSettingsLayer.findViewById(R.id.btn_font_size_decrease);
-            btnFontSizeIncrease = (FloatingActionButton) fontSettingsLayer.findViewById(R.id.btn_font_size_increase);
-            btnLineSpacingDecrease = (FloatingActionButton) fontSettingsLayer.findViewById(R.id.btn_line_spacing_decrease);
-            btnLineSpacingIncrease = (FloatingActionButton) fontSettingsLayer.findViewById(R.id.btn_line_spacing_increase);
-            btnLetterSpacingDecrease = (FloatingActionButton) fontSettingsLayer.findViewById(R.id.btn_letter_spacing_decrease);
-            btnLetterSpacingIncrease = (FloatingActionButton) fontSettingsLayer.findViewById(R.id.btn_letter_spacing_increase);
+            btnFontSizeDecrease = fontSettingsLayer.findViewById(R.id.btn_font_size_decrease);
+            btnFontSizeIncrease = fontSettingsLayer.findViewById(R.id.btn_font_size_increase);
+            btnLineSpacingDecrease = fontSettingsLayer.findViewById(R.id.btn_line_spacing_decrease);
+            btnLineSpacingIncrease = fontSettingsLayer.findViewById(R.id.btn_line_spacing_increase);
+            btnLetterSpacingDecrease = fontSettingsLayer.findViewById(R.id.btn_letter_spacing_decrease);
+            btnLetterSpacingIncrease = fontSettingsLayer.findViewById(R.id.btn_letter_spacing_increase);
             tvFontSize = fontSettingsLayer.findViewById(R.id.tv_font_size);
             tvLineSpacing = fontSettingsLayer.findViewById(R.id.tv_line_spacing);
             tvLetterSpacing = fontSettingsLayer.findViewById(R.id.tv_letter_spacing);
@@ -757,9 +754,9 @@ public class ReadingActivity extends AppCompatActivity {
     // 更新字体设置显示
     @SuppressLint("SetTextI18n")
     private void updateFontSettingsDisplay() {
-        tvFontSize.setText("字号: " + currentTextSize);
-        tvLineSpacing.setText("行距: " + currentLineSpacing + "dp");
-        tvLetterSpacing.setText("字距: " + currentLetterSpacing);
+        tvFontSize.setText("" + currentTextSize);
+        tvLineSpacing.setText(currentLineSpacing + "dp");
+        tvLetterSpacing.setText("" + currentLetterSpacing);
     }
     
     // 增大字体
