@@ -70,7 +70,10 @@ public class ColorPickerView extends View {
         // 计算中心点和半径
         centerX = w / 2f;
         centerY = h / 2f;
-        radius = Math.min(w, h) / 2f;
+        radius = Math.min(w, h) / 2f * 0.9f; // 留出一些边距
+        
+        // 初始化触摸点位置
+        updateTouchPositionFromColor();
     }
 
     @Override
@@ -105,10 +108,13 @@ public class ColorPickerView extends View {
         
         // 在圆盘左下角绘制颜色十六进制码
         Paint.FontMetrics fontMetrics = textPaint.getFontMetrics();
-        float textHeight = fontMetrics.descent - fontMetrics.ascent;
         // 计算文本位置（左下角）
         float textX = 20f; // 左边距
-        float textY = getHeight() - 20f; // 下边距
+        float textY = getHeight() - 20f - fontMetrics.bottom; // 下边距，考虑字体基线
+        // 确保文本在视图范围内
+        if (textY > getHeight() - 5) {
+            textY = getHeight() - 5;
+        }
         canvas.drawText(hexColor, textX, textY, textPaint);
     }
 
@@ -122,7 +128,8 @@ public class ColorPickerView extends View {
         float dy = y - centerY;
         float distance = (float) Math.sqrt(dx * dx + dy * dy);
         
-        if (distance > radius) {
+        // 允许触摸点稍微超出圆盘边界，提高用户体验
+        if (distance > radius + 50) {
             return super.onTouchEvent(event);
         }
 
@@ -169,9 +176,17 @@ public class ColorPickerView extends View {
         // 更新十六进制颜色字符串
         hexColor = String.format("#%06X", (0xFFFFFF & selectedColor));
         
-        // 更新触摸点位置
-        touchX = x;
-        touchY = y;
+        // 更新触摸点位置，确保在圆盘范围内
+        float distance = (float) Math.sqrt(dx * dx + dy * dy);
+        if (distance > radius) {
+            // 如果触摸点超出圆盘，将其投影到圆盘边缘
+            float ratio = radius / distance;
+            touchX = centerX + dx * ratio;
+            touchY = centerY + dy * ratio;
+        } else {
+            touchX = x;
+            touchY = y;
+        }
         
         // 通知颜色选择监听器
         if (listener != null) {
@@ -203,6 +218,15 @@ public class ColorPickerView extends View {
         
         return Color.argb(a, r, g, b);
     }
+    
+    // 根据颜色值更新触摸点位置
+    private void updateTouchPositionFromColor() {
+        // 简化实现：将触摸点放在圆盘右侧（红色区域）
+        touchX = centerX + radius;
+        touchY = centerY;
+        hexColor = String.format("#%06X", (0xFFFFFF & selectedColor));
+        invalidate();
+    }
 
     public void setOnColorSelectedListener(OnColorSelectedListener listener) {
         this.listener = listener;
@@ -210,5 +234,17 @@ public class ColorPickerView extends View {
 
     public interface OnColorSelectedListener {
         void onColorSelected(int color);
+    }
+    
+    // 提供获取当前选中颜色的方法
+    public int getSelectedColor() {
+        return selectedColor;
+    }
+    
+    // 设置选中的颜色并更新触摸点位置
+    public void setSelectedColor(int color) {
+        this.selectedColor = color;
+        hexColor = String.format("#%06X", (0xFFFFFF & selectedColor));
+        updateTouchPositionFromColor();
     }
 }
