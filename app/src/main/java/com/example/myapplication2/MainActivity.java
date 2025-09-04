@@ -91,15 +91,13 @@ public class MainActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         booksRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         // 处理书籍点击事件
-        booksAdapter = new BooksAdapter(epubBooks, this::openBook);
-        
-        // 设置长按事件监听器
-        // 处理书籍长按事件，显示删除选项
+        booksAdapter = new BooksAdapter(epubBooks);
+        booksAdapter.setOnBookClickListener(this::openBook);
         booksAdapter.setOnBookLongClickListener(this::showBookOptions);
         
         booksRecyclerView.setAdapter(booksAdapter);
         
-        // 添加分割线
+        // 添加装饰器
         booksRecyclerView.addItemDecoration(new BookItemDecoration(this));
     }
 
@@ -383,26 +381,31 @@ public class MainActivity extends AppCompatActivity {
                             int savedTotalPages = Integer.parseInt(parts[4]);   // 保存的总页数
                             long lastReadTime = Long.parseLong(parts[5]);
                             String fileName = (parts.length > 6) ? parts[6] : "unknown.epub";
+                            String lastChapter = (parts.length > 7) ? parts[7] : ""; // 最后阅读章节
+                            String finalChapter = (parts.length > 8) ? parts[8] : ""; // 最后一章
                             
                             // 检查本地文件是否存在
-                            File bookFile = new File(booksDirectory, fileName);
+                            java.io.File bookFile = new java.io.File(booksDirectory, fileName);
                             if (bookFile.exists()) {
                                 // 使用本地文件路径创建URI
-                                Uri localUri = Uri.fromFile(bookFile);
+                                android.net.Uri localUri = android.net.Uri.fromFile(bookFile);
                                 
                                 // 从ReadingActivity的SharedPreferences中获取最新的当前页和总页数
-                                SharedPreferences readingPrefs = getSharedPreferences("ReadingProgress", MODE_PRIVATE);
+                                android.content.SharedPreferences readingPrefs = getSharedPreferences("ReadingProgress", android.content.Context.MODE_PRIVATE);
                                 int currentPage = readingPrefs.getInt(localUri.toString(), savedCurrentPage);
                                 int totalPages = readingPrefs.getInt(localUri.toString() + "_total", savedTotalPages);
                                 
-                                EPUBBook book = new EPUBBook(localUri, title, author, currentPage, totalPages, lastReadTime, fileName);
+                                // 从ReadingActivity的SharedPreferences中获取最后阅读章节
+                                String savedLastChapter = readingPrefs.getString(localUri.toString() + "_lastChapter", lastChapter);
+                                
+                                EPUBBook book = new EPUBBook(localUri, title, author, currentPage, totalPages, lastReadTime, fileName, savedLastChapter, finalChapter);
                                 epubBooks.add(book);
                             } else {
                                 // 文件不存在，标记为需要更新
                                 booksChanged = true;
                             }
                         } catch (Exception e) {
-                            Log.d(TAG,"错误日志====handleSelectedFile 249"+e);
+                            android.util.Log.d(TAG,"错误日志====handleSelectedFile 249"+e);
                             booksChanged = true;
                         }
                     }
@@ -440,6 +443,10 @@ public class MainActivity extends AppCompatActivity {
                         .append(book.getLastReadTime())
                         .append("|")
                         .append(book.getFileName() != null ? book.getFileName() : "unknown.epub")
+                        .append("|")
+                        .append(book.getLastChapter() != null ? book.getLastChapter() : "") // 保存最后阅读章节
+                        .append("|")
+                        .append(book.getFinalChapter() != null ? book.getFinalChapter() : "") // 保存最后一章
                         .append(";");
             }
         }

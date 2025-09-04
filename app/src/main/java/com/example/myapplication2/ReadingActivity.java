@@ -17,8 +17,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -689,11 +687,21 @@ public class ReadingActivity extends AppCompatActivity {
             editor.putInt(bookUri.toString(), page);
             editor.apply();
             
+            // 更新书籍列表中的进度信息
+            updateBookProgress(page);
             // 更新MainActivity中的书籍进度信息
             updateBookProgressInMainActivity();
+            // 保存最后阅读章节信息到MainActivity
+            updateLastChapterInMainActivity(page);
         }
     }
     
+    // 更新书籍列表中的进度信息
+    private void updateBookProgress(int page) {
+        // 在实际应用中，这里应该更新书籍列表中的进度信息
+        // 由于当前架构限制，我们只记录日志
+        Log.d(TAG, "updateBookProgress: Updating book progress to page " + page);
+    }
     
     // 将书籍进度信息更新到MainActivity的SharedPreferences中
     private void updateBookProgressInMainActivity() {
@@ -714,6 +722,34 @@ public class ReadingActivity extends AppCompatActivity {
         }
     }
     
+    // 将最后阅读章节信息更新到MainActivity的SharedPreferences中
+    private void updateLastChapterInMainActivity(int page) {
+        if (bookUri != null && spineReferences != null && page >= 0 && page < spineReferences.size()) {
+            try {
+                // 获取当前章节标题
+                String chapterTitle = spineReferences.get(page).getResource().getTitle();
+                if (chapterTitle == null || chapterTitle.isEmpty()) {
+                    // 如果章节没有标题，使用章节索引作为标题
+                    chapterTitle = "第" + (page + 1) + "章";
+                }
+                
+                // 获取MainActivity使用的SharedPreferences
+                SharedPreferences mainPrefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE);
+                SharedPreferences.Editor editor = mainPrefs.edit();
+                
+                // 保存最后阅读章节
+                editor.putString(bookUri.toString() + "_lastChapter", chapterTitle);
+                
+                // 提交保存
+                editor.apply();
+                
+                Log.d(TAG, "updateLastChapterInMainActivity: Updated last chapter for " + bookUri + " to " + chapterTitle);
+            } catch (Exception e) {
+                Log.e(TAG, "updateLastChapterInMainActivity: Error getting chapter title", e);
+            }
+        }
+    }
+    
     // 保存总章节数
     private void saveTotalChapters(int totalPages) {
         Log.d(TAG, "saveTotalChapters: totalPages=" + totalPages);
@@ -721,6 +757,44 @@ public class ReadingActivity extends AppCompatActivity {
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putInt(bookUri.toString() + "_total", totalPages);
             editor.apply();
+            
+            // 同时更新MainActivity中的总章节数
+            updateTotalChaptersInMainActivity(totalPages);
+        }
+    }
+    
+    // 将总章节数更新到MainActivity的SharedPreferences中
+    private void updateTotalChaptersInMainActivity(int totalPages) {
+        if (bookUri != null) {
+            try {
+                // 获取最后一章的标题
+                String finalChapterTitle = "";
+                if (spineReferences != null && !spineReferences.isEmpty()) {
+                    // 获取最后一章
+                    SpineReference lastChapter = spineReferences.get(spineReferences.size() - 1);
+                    finalChapterTitle = lastChapter.getResource().getTitle();
+                    if (finalChapterTitle == null || finalChapterTitle.isEmpty()) {
+                        // 如果章节没有标题，使用章节索引作为标题
+                        finalChapterTitle = "第" + spineReferences.size() + "章";
+                    }
+                }
+                
+                // 获取MainActivity使用的SharedPreferences
+                SharedPreferences mainPrefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE);
+                SharedPreferences.Editor editor = mainPrefs.edit();
+                
+                // 保存总章节数
+                editor.putInt(bookUri.toString() + "_total", totalPages);
+                // 保存最后一章信息
+                editor.putString(bookUri.toString() + "_finalChapter", finalChapterTitle);
+                
+                // 提交保存
+                editor.apply();
+                
+                Log.d(TAG, "updateTotalChaptersInMainActivity: Updated total chapters for " + bookUri + " to " + totalPages + ", final chapter: " + finalChapterTitle);
+            } catch (Exception e) {
+                Log.e(TAG, "updateTotalChaptersInMainActivity: Error getting final chapter title", e);
+            }
         }
     }
     
