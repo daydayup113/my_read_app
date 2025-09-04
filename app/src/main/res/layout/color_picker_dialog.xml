@@ -24,49 +24,6 @@
         android:layout_gravity="center"
         android:layout_marginBottom="20dp" />
 
-    <!-- 颜色预览和信息 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginBottom="20dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="当前颜色:"
-            android:textSize="16sp"
-            android:textColor="#666666"
-            android:layout_marginBottom="8dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <View
-                android:id="@+id/colorPreview"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:background="#ADD8E6"
-                android:layout_marginEnd="16dp" />
-
-            <TextView
-                android:id="@+id/colorHexText"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="#ADD8E6"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="#333333"
-                android:fontFamily="monospace" />
-
-        </LinearLayout>
-
-    </LinearLayout>
-
     <!-- 操作按钮 -->
     <LinearLayout
         android:layout_width="match_parent"

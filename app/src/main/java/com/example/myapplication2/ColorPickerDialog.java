@@ -13,8 +13,6 @@ import android.widget.TextView;
 public class ColorPickerDialog extends Dialog {
     private OnColorSelectedListener listener;
     private int selectedColor;
-    private View colorPreview;
-    private TextView colorHexText;
     private ColorPickerView colorPickerView;
     private Button confirmButton;
     private Button cancelButton;
@@ -32,7 +30,6 @@ public class ColorPickerDialog extends Dialog {
 
         initViews();
         setupListeners();
-        updateColorPreview();
 
         // 设置窗口背景为透明
         if (getWindow() != null) {
@@ -51,8 +48,6 @@ public class ColorPickerDialog extends Dialog {
 
     private void initViews() {
         colorPickerView = findViewById(R.id.colorPickerView);
-        colorPreview = findViewById(R.id.colorPreview);
-        colorHexText = findViewById(R.id.colorHexText);
         confirmButton = findViewById(R.id.confirmButton);
         cancelButton = findViewById(R.id.cancelButton);
 
@@ -65,7 +60,6 @@ public class ColorPickerDialog extends Dialog {
             @Override
             public void onColorSelected(int color) {
                 selectedColor = color;
-                updateColorPreview();
             }
         });
         
@@ -92,24 +86,6 @@ public class ColorPickerDialog extends Dialog {
         });
     }
 
-    private void updateColorPreview() {
-        // 使用颜色选择器的当前颜色
-        int currentColor = colorPickerView.getSelectedColor();
-        colorPreview.setBackgroundColor(currentColor);
-        
-        // 更新颜色十六进制码显示
-        String hexColor = String.format("#%06X", (0xFFFFFF & currentColor));
-        colorHexText.setText(hexColor);
-        
-        // 根据背景色调整预览文字颜色，确保可读性
-        int grayValue = (int) (0.299 * Color.red(currentColor) + 
-                              0.587 * Color.green(currentColor) + 
-                              0.114 * Color.blue(currentColor));
-        
-        // 如果背景较暗，使用白色文字；否则使用黑色文字
-        int textColor = grayValue < 128 ? Color.WHITE : Color.BLACK;
-        colorHexText.setTextColor(textColor);
-    }
 
     public void setOnColorSelectedListener(OnColorSelectedListener listener) {
         this.listener = listener;

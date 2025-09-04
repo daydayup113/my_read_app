@@ -1,5 +1,6 @@
 package com.example.myapplication2;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -10,6 +11,7 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 public class ColorPickerView extends View {
@@ -77,18 +79,18 @@ public class ColorPickerView extends View {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
+    protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
 
         // 创建圆盘渐变
-        Shader shader = new SweepGradient(centerX, centerY, colors, null);
+        @SuppressLint("DrawAllocation") Shader shader = new SweepGradient(centerX, centerY, colors, null);
         paint.setShader(shader);
 
         // 绘制圆盘
         canvas.drawCircle(centerX, centerY, radius, paint);
 
         // 绘制中心白色圆圈
-        Paint centerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        @SuppressLint("DrawAllocation") Paint centerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         centerPaint.setStyle(Paint.Style.FILL);
         centerPaint.setColor(selectedColor);
         canvas.drawCircle(centerX, centerY, radius / 8f, centerPaint);
@@ -99,7 +101,7 @@ public class ColorPickerView extends View {
             canvas.drawCircle(touchX, touchY, 25f, touchPaint);
             
             // 绘制内圈指示器
-            Paint innerTouchPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            @SuppressLint("DrawAllocation") Paint innerTouchPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             innerTouchPaint.setStyle(Paint.Style.STROKE);
             innerTouchPaint.setStrokeWidth(4f);
             innerTouchPaint.setColor(Color.BLACK);
@@ -112,12 +114,16 @@ public class ColorPickerView extends View {
         float textX = 20f; // 左边距
         float textY = getHeight() - 20f - fontMetrics.bottom; // 下边距，考虑字体基线
         // 确保文本在视图范围内
-        if (textY > getHeight() - 5) {
-            textY = getHeight() - 5;
+        if (textY > getHeight() - fontMetrics.bottom) {
+            textY = getHeight() - fontMetrics.bottom;
+        }
+        if (textY < -fontMetrics.top) {
+            textY = -fontMetrics.top;
         }
         canvas.drawText(hexColor, textX, textY, textPaint);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         float x = event.getX();
