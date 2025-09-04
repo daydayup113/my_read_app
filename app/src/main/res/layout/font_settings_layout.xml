@@ -5,13 +5,12 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- 上方三分之二区域，半透明遮罩，点击隐藏字体设置层 -->
+    <!-- 上方三分之二区域，半透明遮罩，点击隐藏字体设置层 android:background="#80000000"-->
     <View
         android:id="@+id/fontSettingsOverlay"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="2"
-        android:background="#80000000"
         android:clickable="true"
         android:focusable="true" />
 
@@ -43,7 +42,8 @@
 
             <ScrollView
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:fillViewport="true">
 
                 <LinearLayout
@@ -67,6 +67,8 @@
                             app:cardCornerRadius="8dp"
                             app:cardElevation="2dp"
                             app:cardBackgroundColor="#F5F5F5"
+                            app:cardPreventCornerOverlap="false"
+                            app:cardUseCompatPadding="true"
                             android:layout_marginEnd="4dp">
 
                             <LinearLayout
@@ -96,12 +98,12 @@
                                     android:layout_marginEnd="6dp">
 
                                     <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="字号"
-                                        android:textSize="8sp"
-                                        android:textColor="#757575"
-                                        android:layout_marginBottom="1dp" />
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="字号"
+                                    android:textSize="8sp"
+                                    android:textColor="#757575"
+                                    android:layout_marginBottom="1dp" />
 
                                     <TextView
                                         android:id="@+id/tv_font_size"
@@ -136,6 +138,8 @@
                             app:cardCornerRadius="8dp"
                             app:cardElevation="2dp"
                             app:cardBackgroundColor="#F5F5F5"
+                            app:cardPreventCornerOverlap="false"
+                            app:cardUseCompatPadding="true"
                             android:layout_marginStart="4dp">
 
                             <LinearLayout
