@@ -37,15 +37,25 @@ public class TOCAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
+        ViewHolder holder;
+        
         if (convertView == null) {
-            convertView = LayoutInflater.from(context).inflate(android.R.layout.simple_list_item_1, parent, false);
+            convertView = LayoutInflater.from(context).inflate(R.layout.toc_item, parent, false);
+            holder = new ViewHolder();
+            holder.chapterTitle = convertView.findViewById(R.id.chapterTitle);
+            convertView.setTag(holder);
+        } else {
+            holder = (ViewHolder) convertView.getTag();
         }
 
-        TextView textView = convertView.findViewById(android.R.id.text1);
         TOCReference chapter = chapters.get(position);
-        textView.setText(chapter.getTitle());
-        textView.setTextSize(18);
+        // 设置章节编号和标题
+        holder.chapterTitle.setText((position + 1) + ". " + chapter.getTitle());
 
         return convertView;
+    }
+    
+    static class ViewHolder {
+        TextView chapterTitle;
     }
 }

@@ -1,25 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="#f5f5f5"
     tools:context=".TableOfContentsActivity">
 
-    <TextView
+    <!-- 标题栏 -->
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="章节目录"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:padding="16dp" />
+        app:cardElevation="4dp"
+        app:cardCornerRadius="0dp">
 
-    <ListView
-        android:id="@+id/tocListView"
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="章节目录"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:padding="16dp"
+            android:background="#ffffff" />
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- 章节列表和垂直进度条 -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:padding="8dp" />
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <!-- 章节列表 -->
+        <ListView
+            android:id="@+id/tocListView"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:paddingEnd="4dp"
+            android:clipToPadding="false"
+            android:divider="@null"
+            android:dividerHeight="0dp"
+            android:scrollbarStyle="outsideOverlay"
+            android:scrollbars="none" />
+
+        <!-- 垂直滚动进度条 -->
+        <FrameLayout
+            android:id="@+id/progressBarContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginStart="4dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <View
+                android:layout_width="4dp"
+                android:layout_height="match_parent"
+                android:background="#e0e0e0"
+                android:layout_gravity="center_horizontal" />
+
+            <View
+                android:id="@+id/progressIndicator"
+                android:layout_width="12dp"
+                android:layout_height="20dp"
+                android:background="#2196F3"
+                android:layout_gravity="center_horizontal|top"
+                android:layout_marginStart="-4dp" />
+
+        </FrameLayout>
+
+    </LinearLayout>
 
 </LinearLayout>
