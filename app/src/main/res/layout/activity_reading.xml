@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="false"
     tools:context=".ReadingActivity">
 
     <ScrollView
@@ -72,6 +73,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
+            android:layout_marginTop="24dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp">
 
@@ -122,6 +124,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
+            android:layout_marginBottom="24dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp">
 
