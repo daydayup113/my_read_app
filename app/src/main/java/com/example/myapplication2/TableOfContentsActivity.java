@@ -10,6 +10,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -45,6 +46,7 @@ public class TableOfContentsActivity extends AppCompatActivity {
         }
     };
     private LoadTableOfContentsTask loadTask; // 异步加载任务
+    private ImageButton backButton; // 返回按钮
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -160,6 +162,13 @@ public class TableOfContentsActivity extends AppCompatActivity {
         tocListView = findViewById(R.id.tocListView);
         progressIndicator = findViewById(R.id.progressIndicator);
         progressBarContainer = findViewById(R.id.progressBarContainer);
+        backButton = findViewById(R.id.backButton); // 初始化返回按钮
+        
+        // 设置返回按钮点击事件
+        backButton.setOnClickListener(v -> {
+            // 直接finish当前Activity，返回到阅读页面
+            finish();
+        });
         
         chapters = new ArrayList<>();
         tocAdapter = new TOCAdapter(this, chapters, currentChapterPosition); // 传递当前章节位置给适配器
