@@ -270,7 +270,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
-        String[] mimetypes = {"application/epub+zip", "application/x-epub"};
+        String[] mimetypes = {"application/epub+zip", "application/x-epub", "text/plain"};
         intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
         startActivityForResult(intent, FILE_PICKER_REQUEST_CODE);
     }

@@ -3,9 +3,11 @@ package com.example.myapplication2;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Color; // 添加缺失的Color类导入
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.text.Html;
 import android.util.Log;
 import android.util.TypedValue;
@@ -27,7 +29,10 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
+import java.io.BufferedReader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
 
 import nl.siegmann.epublib.domain.Book;
@@ -93,6 +98,9 @@ public class ReadingActivity extends AppCompatActivity {
     
     // 添加ActivityResultLauncher来处理目录页面的返回结果
     private ActivityResultLauncher<Intent> tocActivityResultLauncher;
+    
+    private List<String> txtPages; // 存储TXT文件分页后的内容
+    private int currentTxtPage = 0; // 当前TXT文件页码
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -420,31 +428,39 @@ public class ReadingActivity extends AppCompatActivity {
         
         new Thread(() -> {
             try {
-                epubBook = loadEpubBook();
-                if (epubBook != null) {
-                    Log.d(TAG, "loadBookContent: EPUB book loaded successfully");
-                    // 获取书籍的spine references
-                    Spine spine = epubBook.getSpine();
-                    spineReferences = spine.getSpineReferences();
-                    Log.d(TAG, "loadBookContent: spineReferences size=" + spineReferences.size());
-                    
-                    // 保存总章节数
-                    saveTotalChapters(spineReferences.size());
-                    
-                    // 恢复阅读进度
-                    int savedPage = getSavedProgress();
-                    Log.d(TAG, "loadBookContent: savedPage=" + savedPage);
-                    // 加载保存的页面内容或第一页内容
-                    loadPageContent(savedPage, true); // 恢复进度时保持滚动位置
+                // 检查文件扩展名以确定文件类型
+                String fileName = getFileNameFromUri(bookUri);
+                if (fileName != null && fileName.toLowerCase().endsWith(".txt")) {
+                    // 处理TXT文件
+                    loadTxtBook();
                 } else {
-                    Log.e(TAG, "loadBookContent: Failed to load EPUB book");
-                    runOnUiThread(() -> {
-                        contentTextView.setText("无法加载书籍内容");
-                        Toast.makeText(ReadingActivity.this, "加载书籍失败", Toast.LENGTH_LONG).show();
-                    });
+                    // 处理EPUB文件（默认）
+                    epubBook = loadEpubBook();
+                    if (epubBook != null) {
+                        Log.d(TAG, "loadBookContent: EPUB book loaded successfully");
+                        // 获取书籍的spine references
+                        Spine spine = epubBook.getSpine();
+                        spineReferences = spine.getSpineReferences();
+                        Log.d(TAG, "loadBookContent: spineReferences size=" + spineReferences.size());
+                        
+                        // 保存总章节数
+                        saveTotalChapters(spineReferences.size());
+                        
+                        // 恢复阅读进度
+                        int savedPage = getSavedProgress();
+                        Log.d(TAG, "loadBookContent: savedPage=" + savedPage);
+                        // 加载保存的页面内容或第一页内容
+                        loadPageContent(savedPage, true); // 恢复进度时保持滚动位置
+                    } else {
+                        Log.e(TAG, "loadBookContent: Failed to load EPUB book");
+                        runOnUiThread(() -> {
+                            contentTextView.setText("无法加载书籍内容");
+                            Toast.makeText(ReadingActivity.this, "加载书籍失败", Toast.LENGTH_LONG).show();
+                        });
+                    }
                 }
             } catch (Exception e) {
-                Log.e(TAG, "加载EPUB文件时出错", e);
+                Log.e(TAG, "加载书籍时出错", e);
                 runOnUiThread(() -> {
                     contentTextView.setText("加载书籍时出错: " + e.getMessage());
                     Toast.makeText(ReadingActivity.this, "加载书籍时出错", Toast.LENGTH_LONG).show();
@@ -458,7 +474,295 @@ public class ReadingActivity extends AppCompatActivity {
             }
         }).start();
     }
-
+    
+    // 加载TXT格式的书籍
+    private void loadTxtBook() {
+        Log.d(TAG, "loadTxtBook: Loading TXT book from URI: " + bookUri);
+        try (InputStream inputStream = getContentResolver().openInputStream(bookUri)) {
+            if (inputStream != null) {
+                // 自动检测编码并正确读取TXT文件
+                String charsetName = detectCharset(inputStream);
+                Log.d(TAG, "loadTxtBook: Detected charset: " + charsetName);
+                
+                // 重新打开输入流，因为detectCharset已经读取了部分数据
+                try (InputStream newInputStream = getContentResolver().openInputStream(bookUri)) {
+                    if (newInputStream != null) {
+                        // 分块读取大文件，避免OOM
+                        txtPages = new ArrayList<>();
+                        StringBuilder currentPage = new StringBuilder();
+                        
+                        // 使用BufferedReader按行读取，避免大字符串操作
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(newInputStream, charsetName));
+                        String line;
+                        long totalChars = 0;
+                        
+                        while ((line = reader.readLine()) != null) {
+                            currentPage.append(line).append("\n");
+                            totalChars += line.length() + 1; // +1 for newline character
+                            
+                            // 每读取约20000个字符就分一页（避免单页内容过多）
+                            if (totalChars > 20000) {
+                                txtPages.add(currentPage.toString());
+                                currentPage = new StringBuilder();
+                                totalChars = 0; // 重置计数器
+                            }
+                        }
+                        reader.close();
+                        
+                        // 添加最后一页（如果有内容）
+                        if (currentPage.length() > 0) {
+                            txtPages.add(currentPage.toString());
+                        }
+                        
+                        Log.d(TAG, "loadTxtBook: TXT book loaded successfully, pages: " + txtPages.size());
+                        
+                        // 在主线程中更新UI
+                        runOnUiThread(() -> {
+                            if (!txtPages.isEmpty()) {
+                                currentTxtPage = 0;
+                                displayTxtPage();
+                                updateTxtPageButtons();
+                            } else {
+                                contentTextView.setText("文件内容为空");
+                            }
+                            
+                            // 保存总章节数
+                            saveTotalChapters(txtPages.size());
+                        });
+                    } else {
+                        throw new Exception("无法重新打开输入流");
+                    }
+                }
+            } else {
+                Log.e(TAG, "loadTxtBook: Failed to open input stream");
+                runOnUiThread(() -> {
+                    contentTextView.setText("无法打开书籍文件");
+                    Toast.makeText(ReadingActivity.this, "无法打开书籍文件", Toast.LENGTH_LONG).show();
+                });
+            }
+        } catch (SecurityException e) {
+            Log.e(TAG, "没有权限访问TXT文件: " + e.getMessage(), e);
+            runOnUiThread(() -> {
+                Toast.makeText(ReadingActivity.this, "没有权限访问TXT文件，请重新选择书籍", Toast.LENGTH_LONG).show();
+            });
+        } catch (OutOfMemoryError e) {
+            Log.e(TAG, "内存不足，无法加载TXT文件", e);
+            runOnUiThread(() -> {
+                contentTextView.setText("内存不足，无法加载书籍。请尝试阅读较小的文件。");
+                Toast.makeText(ReadingActivity.this, "内存不足，无法加载书籍", Toast.LENGTH_LONG).show();
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "解析TXT文件时出错", e);
+            runOnUiThread(() -> {
+                Toast.makeText(ReadingActivity.this, "解析TXT文件时出错: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            });
+        }
+    }
+    
+    // 检测TXT文件的字符编码
+    private String detectCharset(InputStream inputStream) {
+        try {
+            // 读取文件开头的部分字节用于编码检测
+            byte[] headBuffer = new byte[4096];
+            int bytesRead = inputStream.read(headBuffer);
+            
+            if (bytesRead == -1) {
+                // 文件为空，使用默认编码
+                return "UTF-8";
+            }
+            
+            // 检查BOM标记
+            if (bytesRead >= 3 && headBuffer[0] == (byte)0xEF && headBuffer[1] == (byte)0xBB && headBuffer[2] == (byte)0xBF) {
+                // UTF-8 BOM
+                return "UTF-8";
+            } else if (bytesRead >= 2 && headBuffer[0] == (byte)0xFF && headBuffer[1] == (byte)0xFE) {
+                // UTF-16 LE BOM
+                return "UTF-16LE";
+            } else if (bytesRead >= 2 && headBuffer[0] == (byte)0xFE && headBuffer[1] == (byte)0xFF) {
+                // UTF-16 BE BOM
+                return "UTF-16BE";
+            } else if (bytesRead >= 4 && headBuffer[0] == (byte)0xFF && headBuffer[1] == 0x00 && headBuffer[2] == 0x00 && headBuffer[3] == 0x00) {
+                // UTF-32 BE BOM (FF 00 00 00)
+                return "UTF-32BE";
+            } else if (bytesRead >= 4 && headBuffer[0] == (byte)0x00 && headBuffer[1] == 0x00 && headBuffer[2] == 0x00 && headBuffer[3] == (byte)0xFF) {
+                // UTF-32 LE BOM (00 00 00 FF)
+                return "UTF-32LE";
+            } else if (bytesRead >= 4 && headBuffer[0] == (byte)0x00 && headBuffer[1] == 0x00 && headBuffer[2] == (byte)0xFE && headBuffer[3] == (byte)0xFF) {
+                // UTF-32 BE BOM (00 00 FE FF)
+                return "UTF-32BE";
+            } else if (bytesRead >= 4 && headBuffer[0] == (byte)0xFF && headBuffer[1] == (byte)0xFE && headBuffer[2] == 0x00 && headBuffer[3] == 0x00) {
+                // UTF-32 LE BOM (FF FE 00 00)
+                return "UTF-32LE";
+            }
+            
+            // 检查是否可能为UTF-8（无BOM）
+            if (isUtf8(headBuffer, bytesRead)) {
+                return "UTF-8";
+            }
+            
+            // 检查是否为GBK编码（中文）
+            if (isGbk(headBuffer, bytesRead)) {
+                return "GBK";
+            }
+            
+            // 默认使用UTF-8
+            return "UTF-8";
+        } catch (Exception e) {
+            Log.e(TAG, "detectCharset: Error detecting charset, using UTF-8 as default", e);
+            return "UTF-8";
+        }
+    }
+    
+    // 简单检测是否为UTF-8编码
+    private boolean isUtf8(byte[] buffer, int length) {
+        int i = 0;
+        while (i < length) {
+            // 检查单字节字符 (0xxxxxxx)
+            if ((buffer[i] & 0x80) == 0) {
+                i++;
+            }
+            // 检查双字节字符 (110xxxxx 10xxxxxx)
+            else if ((buffer[i] & 0xE0) == 0xC0) {
+                if (i + 1 >= length || (buffer[i + 1] & 0xC0) != 0x80) {
+                    return false;
+                }
+                i += 2;
+            }
+            // 检查三字节字符 (1110xxxx 10xxxxxx 10xxxxxx)
+            else if ((buffer[i] & 0xF0) == 0xE0) {
+                if (i + 2 >= length || (buffer[i + 1] & 0xC0) != 0x80 || (buffer[i + 2] & 0xC0) != 0x80) {
+                    return false;
+                }
+                i += 3;
+            }
+            // 检查四字节字符 (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx)
+            else if ((buffer[i] & 0xF8) == 0xF0) {
+                if (i + 3 >= length || (buffer[i + 1] & 0xC0) != 0x80 || (buffer[i + 2] & 0xC0) != 0x80 || (buffer[i + 3] & 0xC0) != 0x80) {
+                    return false;
+                }
+                i += 4;
+            } else {
+                // 不符合UTF-8编码规则
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    // 简单检测是否可能为GBK编码
+    private boolean isGbk(byte[] buffer, int length) {
+        try {
+            // 尝试用GBK解码一部分数据，看是否会产生异常
+            String str = new String(buffer, 0, Math.min(length, 1024), "GBK");
+            // 检查解码后的字符串是否包含明显的乱码字符
+            // 这里使用一个简单的启发式方法：如果解码后的字符串中包含较多的问号或方块字符，可能不是GBK
+            int invalidCharCount = 0;
+            for (int i = 0; i < str.length(); i++) {
+                char c = str.charAt(i);
+                if (c == 0xfffd || c < 32 && c != '\n' && c != '\r' && c != '\t') {
+                    invalidCharCount++;
+                }
+            }
+            // 如果无效字符比例小于30%，则可能是GBK编码
+            return ((double) invalidCharCount / str.length()) < 0.3;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    // 显示TXT文件当前页
+    private void displayTxtPage() {
+        if (txtPages != null && !txtPages.isEmpty() && currentTxtPage >= 0 && currentTxtPage < txtPages.size()) {
+            contentTextView.setText(txtPages.get(currentTxtPage));
+            Log.d(TAG, "displayTxtPage: Displaying page " + (currentTxtPage + 1) + "/" + txtPages.size());
+        }
+    }
+    
+    // 更新TXT文件翻页按钮状态
+    private void updateTxtPageButtons() {
+        if (txtPages == null || txtPages.isEmpty()) return;
+        
+        // 检查按钮是否需要显示
+        boolean shouldShowButtons = !isMenuVisible && fontSettingsLayer.getVisibility() != View.VISIBLE;
+        
+        if (shouldShowButtons) {
+            // 显示翻页按钮并添加动画效果
+            if (previousPageButton.getVisibility() != View.VISIBLE) {
+                previousPageButton.setVisibility(View.VISIBLE);
+                animateButtonAppear(previousPageButton);
+            }
+            
+            if (nextPageButton.getVisibility() != View.VISIBLE) {
+                nextPageButton.setVisibility(View.VISIBLE);
+                animateButtonAppear(nextPageButton);
+            }
+            
+            // 更新按钮启用状态
+            previousPageButton.setEnabled(currentTxtPage > 0);
+            nextPageButton.setEnabled(currentTxtPage < txtPages.size() - 1);
+        } else {
+            // 隐藏翻页按钮
+            previousPageButton.setVisibility(View.GONE);
+            nextPageButton.setVisibility(View.GONE);
+        }
+    }
+    
+    // TXT文件上一页
+    private void txtPreviousPage() {
+        if (txtPages != null && currentTxtPage > 0) {
+            currentTxtPage--;
+            displayTxtPage();
+            updateTxtPageButtons();
+            contentScrollView.scrollTo(0, 0); // 滚动到顶部
+            
+            // 保存阅读进度
+            saveProgress(currentTxtPage);
+        } else {
+            Toast.makeText(this, "已经是第一页", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    // TXT文件下一页
+    private void txtNextPage() {
+        if (txtPages != null && currentTxtPage < txtPages.size() - 1) {
+            currentTxtPage++;
+            displayTxtPage();
+            updateTxtPageButtons();
+            contentScrollView.scrollTo(0, 0); // 滚动到顶部
+            
+            // 保存阅读进度
+            saveProgress(currentTxtPage);
+        } else {
+            Toast.makeText(this, "已经是最后一页", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    // 从Uri获取文件名
+    private String getFileNameFromUri(Uri uri) {
+        String fileName = null;
+        
+        // 尝试通过ContentResolver获取真实文件名
+        if (uri.getScheme() != null && uri.getScheme().equals("content")) {
+            try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (nameIndex >= 0) {
+                        fileName = cursor.getString(nameIndex);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        
+        // 如果无法获取到文件名，则使用uri的最后一段
+        if (fileName == null) {
+            fileName = uri.getLastPathSegment();
+        }
+        
+        return fileName;
+    }
+    
     private Book loadEpubBook() {
         Log.d(TAG, "loadEpubBook: Loading EPUB book from URI: " + bookUri);
         try (InputStream epubInputStream = getContentResolver().openInputStream(bookUri)) {
@@ -858,7 +1162,11 @@ public class ReadingActivity extends AppCompatActivity {
     // 添加翻页方法
     private void nextPage() {
         Log.d(TAG, "nextPage: currentPage=" + currentPage);
-        if (spineReferences != null && currentPage < spineReferences.size() - 1) {
+        // 检查当前是否为TXT文件阅读模式
+        if (txtPages != null) {
+            // TXT文件翻页
+            txtNextPage();
+        } else if (spineReferences != null && currentPage < spineReferences.size() - 1) {
             loadPageContent(currentPage + 1);
             // 保存阅读进度
             saveProgress(currentPage + 1);
@@ -869,7 +1177,11 @@ public class ReadingActivity extends AppCompatActivity {
     
     private void previousPage() {
         Log.d(TAG, "previousPage: currentPage=" + currentPage);
-        if (currentPage > 0) {
+        // 检查当前是否为TXT文件阅读模式
+        if (txtPages != null) {
+            // TXT文件翻页
+            txtPreviousPage();
+        } else if (currentPage > 0) {
             loadPageContent(currentPage - 1);
             // 保存阅读进度
             saveProgress(currentPage - 1);
