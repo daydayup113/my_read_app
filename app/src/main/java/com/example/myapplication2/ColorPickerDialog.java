@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.TextView;
 
 public class ColorPickerDialog extends Dialog {
@@ -16,6 +17,7 @@ public class ColorPickerDialog extends Dialog {
     private ColorPickerView colorPickerView;
     private Button confirmButton;
     private Button cancelButton;
+    private CheckBox textColorCheckBox;
 
     public ColorPickerDialog(Context context, int initialColor) {
         super(context);
@@ -50,6 +52,7 @@ public class ColorPickerDialog extends Dialog {
         colorPickerView = findViewById(R.id.colorPickerView);
         confirmButton = findViewById(R.id.confirmButton);
         cancelButton = findViewById(R.id.cancelButton);
+        textColorCheckBox = findViewById(R.id.textColorCheckBox);
 
         // 设置按钮样式
         // 使用系统默认按钮样式，避免自定义背景影响点击效果
@@ -72,7 +75,8 @@ public class ColorPickerDialog extends Dialog {
             @Override
             public void onClick(View v) {
                 if (listener != null) {
-                    listener.onColorSelected(colorPickerView.getSelectedColor());
+                    boolean changeTextColor = textColorCheckBox.isChecked();
+                    listener.onColorSelected(colorPickerView.getSelectedColor(), changeTextColor);
                 }
                 dismiss();
             }
@@ -92,6 +96,6 @@ public class ColorPickerDialog extends Dialog {
     }
 
     public interface OnColorSelectedListener {
-        void onColorSelected(int color);
+        void onColorSelected(int color, boolean changeTextColor);
     }
 }

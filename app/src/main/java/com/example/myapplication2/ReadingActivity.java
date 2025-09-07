@@ -50,6 +50,7 @@ public class ReadingActivity extends AppCompatActivity {
     private static final String LINE_SPACING_PREF = "lineSpacing";
     private static final String LETTER_SPACING_PREF = "letterSpacing";
     private static final String BACKGROUND_COLOR_PREF = "backgroundColor"; // 添加背景色偏好键
+    private static final String TEXT_COLOR_PREF = "textColor"; // 添加字体颜色偏好键
     private ScrollView contentScrollView;
     private TextView contentTextView;
     private View menuLayer;
@@ -77,6 +78,7 @@ public class ReadingActivity extends AppCompatActivity {
     private float currentLineSpacing = 4f; // 默认行距
     private float currentLetterSpacing = 0f; // 默认字距
     private int currentBackgroundColor = 0xFFADD8E6; // 默认背景色 (浅蓝色)
+    private int currentTextColor = 0xFF000000; // 默认字体颜色 (黑色)
     
     // 字体设置层中的控件
     private ImageButton btnFontSizeDecrease;
@@ -234,6 +236,7 @@ public class ReadingActivity extends AppCompatActivity {
         currentLineSpacing = sharedPreferences.getFloat(LINE_SPACING_PREF, 4f);
         currentLetterSpacing = sharedPreferences.getFloat(LETTER_SPACING_PREF, 0f);
         currentBackgroundColor = sharedPreferences.getInt(BACKGROUND_COLOR_PREF, 0xFFADD8E6);
+        currentTextColor = sharedPreferences.getInt(TEXT_COLOR_PREF, 0xFF000000);
         
         // 应用设置到文本视图
         contentTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, currentTextSize);
@@ -242,6 +245,7 @@ public class ReadingActivity extends AppCompatActivity {
             1f);
 
         contentTextView.setLetterSpacing(currentLetterSpacing);
+        contentTextView.setTextColor(currentTextColor); // 应用字体颜色
 
         // 应用背景色
         contentScrollView.setBackgroundColor(currentBackgroundColor);
@@ -249,7 +253,8 @@ public class ReadingActivity extends AppCompatActivity {
         Log.d(TAG, "restoreUserSettings: Font size=" + currentTextSize + 
               ", Line spacing=" + currentLineSpacing + 
               ", Letter spacing=" + currentLetterSpacing +
-              ", Background color=" + Integer.toHexString(currentBackgroundColor));
+              ", Background color=" + Integer.toHexString(currentBackgroundColor) +
+              ", Text color=" + Integer.toHexString(currentTextColor));
     }
     
     // 保存用户设置
@@ -260,6 +265,7 @@ public class ReadingActivity extends AppCompatActivity {
         editor.putFloat(LINE_SPACING_PREF, currentLineSpacing);
         editor.putFloat(LETTER_SPACING_PREF, currentLetterSpacing);
         editor.putInt(BACKGROUND_COLOR_PREF, currentBackgroundColor);
+        editor.putInt(TEXT_COLOR_PREF, currentTextColor);
         editor.apply();
         Log.d(TAG, "saveUserSettings: Settings saved");
     }
@@ -1033,15 +1039,37 @@ public class ReadingActivity extends AppCompatActivity {
         
         // 使用颜色选择器
         ColorPickerDialog colorPickerDialog = new ColorPickerDialog(this, currentBackgroundColor);
-        colorPickerDialog.setOnColorSelectedListener(color -> {
+        colorPickerDialog.setOnColorSelectedListener((color, changeTextColor) -> {
             // 更新背景色
             currentBackgroundColor = color;
             updateBackgroundColor();
+            
+            // 如果需要同时修改字体颜色
+            if (changeTextColor) {
+                // 根据背景色计算对比度高的字体颜色（简单处理：亮背景用黑色字体，暗背景用白色字体）
+                currentTextColor = calculateContrastColor(color);
+                updateTextColor();
+            }
+            
             // 保存背景色设置
             saveBackgroundColor();
             Log.d(TAG, "Background color changed to: #" + Integer.toHexString(color));
         });
         colorPickerDialog.show();
+    }
+    
+    // 根据背景色计算对比度高的字体颜色
+    private int calculateContrastColor(int backgroundColor) {
+        // 计算亮度
+        int red = Color.red(backgroundColor);
+        int green = Color.green(backgroundColor);
+        int blue = Color.blue(backgroundColor);
+        
+        // 使用相对亮度公式计算亮度
+        double luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+        
+        // 如果亮度大于0.5，则使用黑色字体，否则使用白色字体
+        return luminance > 0.5 ? Color.BLACK : Color.WHITE;
     }
     
     // 更新背景色
@@ -1051,11 +1079,18 @@ public class ReadingActivity extends AppCompatActivity {
         contentTextView.setBackgroundColor(currentBackgroundColor);
     }
     
+    // 更新字体颜色
+    private void updateTextColor() {
+        Log.d(TAG, "updateTextColor: Updating text color to " + String.format("#%06X", (0xFFFFFF & currentTextColor)));
+        contentTextView.setTextColor(currentTextColor);
+    }
+    
     // 保存背景色设置
     private void saveBackgroundColor() {
         Log.d(TAG, "saveBackgroundColor: Saving background color");
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putInt(BACKGROUND_COLOR_PREF, currentBackgroundColor);
+        editor.putInt(TEXT_COLOR_PREF, currentTextColor);
         editor.apply();
         Log.d(TAG, "saveBackgroundColor: Background color saved");
     }
@@ -1064,7 +1099,9 @@ public class ReadingActivity extends AppCompatActivity {
     private void restoreBackgroundColor() {
         Log.d(TAG, "restoreBackgroundColor: Restoring background color");
         currentBackgroundColor = sharedPreferences.getInt(BACKGROUND_COLOR_PREF, 0xFFADD8E6); // 默认为浅蓝色
+        currentTextColor = sharedPreferences.getInt(TEXT_COLOR_PREF, 0xFF000000); // 默认为黑色
         updateBackgroundColor();
+        updateTextColor();
         Log.d(TAG, "restoreBackgroundColor: Background color restored to " + String.format("#%06X", (0xFFFFFF & currentBackgroundColor)));
     }
 }

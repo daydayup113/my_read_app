@@ -24,6 +24,15 @@
         android:layout_gravity="center"
         android:layout_marginBottom="20dp" />
 
+    <!-- 字体颜色选择 -->
+    <CheckBox
+        android:id="@+id/textColorCheckBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="同时修改字体颜色"
+        android:textSize="16sp"
+        android:layout_marginBottom="10dp" />
+
     <!-- 操作按钮 -->
     <LinearLayout
         android:layout_width="match_parent"
