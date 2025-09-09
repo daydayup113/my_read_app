@@ -293,52 +293,117 @@ public class ReadingActivity extends AppCompatActivity {
             private static final int CLICK_THRESHOLD = 20; // 点击和滑动的阈值
             private float startX, startY;
             private long startTime;
-            private boolean isClickEvent = true; // 标记是否为点击事件
+            private boolean isScrolling = false;
 
             @SuppressLint("ClickableViewAccessibility")
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
+                // 获取原始事件的pointer index和pointer id
+                int action = event.getActionMasked();
+                int pointerIndex = event.getActionIndex();
+                int pointerId = event.getPointerId(pointerIndex);
+
+                switch (action) {
                     case MotionEvent.ACTION_DOWN:
-                        startX = event.getX();
-                        startY = event.getY();
+                        startX = event.getX(pointerIndex);
+                        startY = event.getY(pointerIndex);
                         startTime = System.currentTimeMillis();
-                        isClickEvent = true; // 默认认为是点击事件
-                        return false; // 不消费DOWN事件，让ScrollView处理滚动
+                        isScrolling = false;
+                        return true; // 消费DOWN事件，确保能接收到后续事件
                         
                     case MotionEvent.ACTION_MOVE:
                         // 计算移动距离
-                        float moveX = Math.abs(event.getX() - startX);
-                        float moveY = Math.abs(event.getY() - startY);
+                        float moveX = Math.abs(event.getX(pointerIndex) - startX);
+                        float moveY = Math.abs(event.getY(pointerIndex) - startY);
                         
                         // 如果移动距离超过阈值，认为是滑动操作
-                        if (moveX > CLICK_THRESHOLD || moveY > CLICK_THRESHOLD) {
-                            isClickEvent = false; // 标记为非点击事件
+                        if ((moveX > CLICK_THRESHOLD || moveY > CLICK_THRESHOLD) && !isScrolling) {
+                            isScrolling = true;
+                            // 创建一个新的MotionEvent，确保pointer index为0
+                            MotionEvent scrollEvent = MotionEvent.obtain(
+                                event.getDownTime(),
+                                event.getEventTime(),
+                                MotionEvent.ACTION_DOWN,
+                                startX,
+                                startY,
+                                event.getMetaState()
+                            );
+                            // 将事件传递给ScrollView
+                            contentScrollView.dispatchTouchEvent(scrollEvent);
+                            scrollEvent.recycle();
                         }
-                        return false; // 不消费MOVE事件，让ScrollView处理滚动
+                        
+                        // 如果已经在滚动状态，则继续传递MOVE事件
+                        if (isScrolling) {
+                            // 创建一个新的MotionEvent，确保pointer index为0
+                            MotionEvent scrollEvent = MotionEvent.obtain(
+                                event.getDownTime(),
+                                event.getEventTime(),
+                                MotionEvent.ACTION_MOVE,
+                                event.getX(pointerIndex),
+                                event.getY(pointerIndex),
+                                event.getMetaState()
+                            );
+                            contentScrollView.dispatchTouchEvent(scrollEvent);
+                            scrollEvent.recycle();
+                            return true; // 消费MOVE事件
+                        }
+                        
+                        return false; // 不消费MOVE事件
                         
                     case MotionEvent.ACTION_UP:
+                        // 如果在滚动状态，则传递UP事件
+                        if (isScrolling) {
+                            MotionEvent scrollEvent = MotionEvent.obtain(
+                                event.getDownTime(),
+                                event.getEventTime(),
+                                MotionEvent.ACTION_UP,
+                                event.getX(pointerIndex),
+                                event.getY(pointerIndex),
+                                event.getMetaState()
+                            );
+                            contentScrollView.dispatchTouchEvent(scrollEvent);
+                            scrollEvent.recycle();
+                            isScrolling = false;
+                            return true; // 消费UP事件
+                        }
+                        
+                        // 处理点击事件
                         long endTime = System.currentTimeMillis();
-                        float endX = event.getX();
-                        float endY = event.getY();
+                        float endX = event.getX(pointerIndex);
+                        float endY = event.getY(pointerIndex);
                         
                         // 计算移动距离
                         float deltaX = Math.abs(endX - startX);
                         float deltaY = Math.abs(endY - startY);
                         
                         // 判断是否为点击事件
-                        // 条件：移动距离小于阈值 且 时间较短 且未被标记为滑动
-                        if (isClickEvent && deltaX < CLICK_THRESHOLD && deltaY < CLICK_THRESHOLD && 
-                            (endTime - startTime) < 200) {
+                        // 条件：移动距离小于阈值 且 时间较短
+                        if (deltaX < CLICK_THRESHOLD && deltaY < CLICK_THRESHOLD && 
+                            (endTime - startTime) < 300) {
                             Log.d(TAG, "centerClickArea touched: showing menu");
                             showMenu();
                             return true; // 消费点击事件
                         }
-                        return false; // 不消费UP事件，让ScrollView处理
+                        return true; // 消费UP事件
                         
-                    default:
-                        return false;
+                    case MotionEvent.ACTION_CANCEL:
+                        if (isScrolling) {
+                            MotionEvent scrollEvent = MotionEvent.obtain(
+                                event.getDownTime(),
+                                event.getEventTime(),
+                                MotionEvent.ACTION_CANCEL,
+                                event.getX(pointerIndex),
+                                event.getY(pointerIndex),
+                                event.getMetaState()
+                            );
+                            contentScrollView.dispatchTouchEvent(scrollEvent);
+                            scrollEvent.recycle();
+                            isScrolling = false;
+                        }
+                        return true; // 消费CANCEL事件
                 }
+                return false; // 默认不消费事件
             }
         });
 
