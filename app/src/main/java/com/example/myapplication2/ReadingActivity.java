@@ -293,6 +293,7 @@ public class ReadingActivity extends AppCompatActivity {
             private static final int CLICK_THRESHOLD = 20; // 点击和滑动的阈值
             private float startX, startY;
             private long startTime;
+            private boolean isClickEvent = true; // 标记是否为点击事件
 
             @SuppressLint("ClickableViewAccessibility")
             @Override
@@ -302,7 +303,19 @@ public class ReadingActivity extends AppCompatActivity {
                         startX = event.getX();
                         startY = event.getY();
                         startTime = System.currentTimeMillis();
-                        return true; // 消费DOWN事件
+                        isClickEvent = true; // 默认认为是点击事件
+                        return false; // 不消费DOWN事件，让ScrollView处理滚动
+                        
+                    case MotionEvent.ACTION_MOVE:
+                        // 计算移动距离
+                        float moveX = Math.abs(event.getX() - startX);
+                        float moveY = Math.abs(event.getY() - startY);
+                        
+                        // 如果移动距离超过阈值，认为是滑动操作
+                        if (moveX > CLICK_THRESHOLD || moveY > CLICK_THRESHOLD) {
+                            isClickEvent = false; // 标记为非点击事件
+                        }
+                        return false; // 不消费MOVE事件，让ScrollView处理滚动
                         
                     case MotionEvent.ACTION_UP:
                         long endTime = System.currentTimeMillis();
@@ -314,27 +327,14 @@ public class ReadingActivity extends AppCompatActivity {
                         float deltaY = Math.abs(endY - startY);
                         
                         // 判断是否为点击事件
-                        // 条件：移动距离小于阈值 且 时间较短
-                        if (deltaX < CLICK_THRESHOLD && deltaY < CLICK_THRESHOLD && 
+                        // 条件：移动距离小于阈值 且 时间较短 且未被标记为滑动
+                        if (isClickEvent && deltaX < CLICK_THRESHOLD && deltaY < CLICK_THRESHOLD && 
                             (endTime - startTime) < 200) {
                             Log.d(TAG, "centerClickArea touched: showing menu");
                             showMenu();
                             return true; // 消费点击事件
                         }
-                        return true; // 消费UP事件
-                        
-                    case MotionEvent.ACTION_MOVE:
-                        // 计算移动距离
-                        float moveX = Math.abs(event.getX() - startX);
-                        float moveY = Math.abs(event.getY() - startY);
-                        
-                        // 如果移动距离超过阈值，认为是滑动操作，不显示菜单
-                        if (moveX > CLICK_THRESHOLD || moveY > CLICK_THRESHOLD) {
-                            // 将事件传递给ScrollView
-                            contentScrollView.dispatchTouchEvent(MotionEvent.obtain(event));
-                            return false; // 不消费事件，让ScrollView处理滑动
-                        }
-                        return true; // 消费MOVE事件
+                        return false; // 不消费UP事件，让ScrollView处理
                         
                     default:
                         return false;
